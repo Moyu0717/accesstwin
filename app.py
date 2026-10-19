@@ -1,3 +1,6 @@
+# Temporary start marker for the Streamlit Cloud log (ISSUE-1); remove once the live app is confirmed working.
+print("AccessTwin app.py started", flush=True)
+
 import streamlit as st
 
 # Paint something immediately, before any heavy import, so the page is never blank (fix pack F2.3).
