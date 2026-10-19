@@ -13,3 +13,4 @@ data/*.db-journal
 data/videos/*.mp4
 data/videos/*.avi
 data/videos/*.mov
+.secrets_local/

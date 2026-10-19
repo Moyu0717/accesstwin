@@ -62,3 +62,10 @@ Format: date / decision / reason / alternatives considered.
 - **Exports** are generated in memory and served with `st.download_button` (HTML brief + two CSVs: upgrade ranking, demand) — no server-side files, works on an ephemeral cloud filesystem.
 - **Footfall page** also lists camera counts vs expected so demo step 3 can be told from that page; the Dashboard carries the full analysis.
 - **Base township JSON** is cached with `st.cache_data`; the SQLite overlay is re-applied every rerun, and overlay-dependent results are cached by the overlay's JSON (acts as the DB version counter).
+
+## 2026-10-19 — D4: cloud readiness
+- **Key file found as a folder:** the user saved the key as `.env/Groq key.txt` (a folder named `.env`), which `python-dotenv` cannot read. The folder was moved to `.secrets_local/` (gitignored) and a proper `.env` file was written from it by a script that never printed the key. Both are gitignored and covered by `scripts/secret_scan.sh`.
+- **Live Groq check:** the opt-in live test passed and `curb_high_step.png` came back as `high_curb` (source groq). A second call seconds later fell back to the demo classifier with the "AI temporarily unavailable" notice — consistent with free-tier rate limiting; the fallback worked as designed.
+- **Secret scan** (`scripts/secret_scan.sh`): tracked + untracked-not-ignored files and full git history, patterns `gsk_…`, `sk-…`, `GROQ_API_KEY=<value>`, `api_key="<value>"`; the documented placeholder `paste-your-key-here` is allowed. Fails if `.env` or `.streamlit/secrets.toml` would be committed.
+- **CI** runs on Python 3.11 with `ACCESSTWIN_MOCK=1`: validate + pytest (live tests are skipped without a key).
+- **`server.headless`** removed from `.streamlit/config.toml` (theme only, per addendum D.6); local headless runs pass the flag on the command line.

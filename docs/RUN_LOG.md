@@ -88,3 +88,22 @@ Append-only. One entry per session / milestone (template: spec section 9.1).
 - None new.
 **Subagents used:** test-writer → tests/test_vision_groq.py; cv-engineer → D2 footfall (in progress)
 **Next step (exact):** finish D2 (footfall) and D3 (dashboard), then run addendum §E checks.
+
+## Session 2 (cont.) — 2026-10-19 23:43 (agent: Claude Code, model: Claude Opus 5.5 main + Haiku/Sonnet subagents)
+**Goal:** Deploy addendum D2 (cloud-safe footfall), D3 (dashboard, suppressed demand, Planning Brief), D4 (cloud readiness + §E checks)
+**Done:**
+- D2 (commit "D2: ..."): `accesstwin/core/footfall.py` (live / precomputed / mock), `pages/4_🎥_Footfall_Analytics.py`, `scripts/precompute_footfall.py`, synthetic `data/footfall_precomputed.json`, `data/videos/sample_preview.png`, store helpers, tests — by cv-engineer.
+- D3 (commit "D3: ..."): `accesstwin/core/demand.py`, `accesstwin/core/report.py`, `pages/6_📊_Planner_Dashboard.py`, camera-vs-expected section on the Footfall page, home links for all 5 demo steps, cached township JSON, `docs/DEMO_SCRIPT.md` without "(after M6/M7)" markers + "Before you present" checklist; demo-script test now covers all 5 steps.
+- D4: `.github/workflows/tests.yml`, README rewrite (live URL placeholder, CI badge, Groq/CV/privacy sections), `docs/screenshots/README.md` (capture list), `scripts/secret_scan.sh`, `.gitignore` (+ `.secrets_local/`).
+**Verified by:**
+- `pytest -q` (dev venv, Python 3.12) → 139 passed, 1 skipped (live test skipped by default)
+- Clean env: fresh Python 3.11.9 venv with `requirements.txt` only (streamlit 1.66.0, groq 1.7.0, no cv2) → full suite 139 passed, 1 skipped, with `.env` renamed away and ACCESSTWIN_MOCK unset (no secrets)
+- `pytest -m live` with the user's key in `.env` → 1 passed; `curb_high_step.png` → source groq, `qwen/qwen3.8-27b`, high_curb, confidence 0.95. An immediate second call fell back to the demo classifier with the "AI temporarily unavailable" notice (rate limit likely).
+- Headless: streamlit on port 8599 → `/_stcore/health` ok, `/` HTTP 200
+- `bash scripts/secret_scan.sh` → clean
+**Not done / Blocked:**
+- Real CV never run (ultralytics/torch not installed); precomputed footfall numbers are synthetic.
+**Bugs / Known issues:**
+- Groq free tier rate-limits back-to-back photo analyses; the app falls back to the demo classifier with a notice.
+**Subagents used:** cv-engineer → D2; test-writer → test_demand/test_report/test_dashboard
+**Next step (exact):** push to `origin main`, confirm the GitHub Actions run is green, then give the user the Streamlit Cloud steps.
