@@ -1,0 +1,22 @@
+{
+  "synthetic": true,
+  "note": "SYNTHETIC stand-in results, clearly labelled as such, until scripts/precompute_footfall.py is run locally with requirements-cv.txt on a real clip.",
+  "sample_clip": {
+    "name": "Sample corridor clip (synthetic results)",
+    "cctv_id": "CAM_01",
+    "duration_s": 30,
+    "in": 23,
+    "out": 19,
+    "total": 42,
+    "frames_processed": 300,
+    "fps_effective": 10.0,
+    "manual_count": 45,
+    "buckets": [
+      {"t_start_s": 0, "in": 8, "out": 5},
+      {"t_start_s": 10, "in": 9, "out": 8},
+      {"t_start_s": 20, "in": 6, "out": 6}
+    ]
+  },
+  "camera_daily_counts": {"CAM_01": 420, "CAM_02": 40, "CAM_03": 260, "CAM_04": 300},
+  "camera_note": "Synthetic daily pedestrian counts per camera used by the suppressed-demand model. CAM_02 sits on Route A edge E7 and is deliberately low."
+}

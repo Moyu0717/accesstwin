@@ -48,3 +48,9 @@ Format: date / decision / reason / alternatives considered.
 - **State dir:** `ACCESSTWIN_STATE_DIR` if set, else `data/` when writable, else `<tempdir>/accesstwin` — decided by a write probe, not by guessing the OS. Uploaded photos are stored as absolute paths in that dir; seed photos as repo-relative POSIX paths.
 - **opencv-python-headless** moved to `requirements-cv.txt`: nothing on the cloud path imports it.
 - **Line endings:** added `.gitattributes` (`* text=auto`) because Python's `write_text` on Windows writes CRLF.
+
+## 2026-10-19 — D2: cloud-safe footfall (M6)
+- **Three modes:** `live` (local, only if cv2 + ultralytics + supervision import and Mock is not forced), `precomputed` (bundled sample clip — default on the cloud), `mock` (uploaded videos when live CV is unavailable; deterministic counts from sha256 of the bytes, with the notice "Live video analysis runs on the on-premise edge device; cloud demo shows sample results.").
+- **Synthetic precomputed data:** live CV is not installed on the dev machine (torch is too large to add casually), so `data/footfall_precomputed.json` is a clearly labelled synthetic stand-in (`"synthetic": true`). `scripts/precompute_footfall.py` regenerates it with real counts on a machine with `requirements-cv.txt` — never run yet.
+- **No sample video committed:** licence of downloadable sample clips not checked → only a Pillow-drawn preview still (`data/videos/sample_preview.png`, no people). Videos are gitignored.
+- **Camera daily counts** (synthetic): CAM_01 420, CAM_02 40 (Route A, E7), CAM_03 260, CAM_04 300. Real CV runs (mock = 0) override a camera with (in + out) × 86400 / duration × 0.1; mock/precomputed runs never override.
