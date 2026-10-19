@@ -107,3 +107,33 @@ Append-only. One entry per session / milestone (template: spec section 9.1).
 - Groq free tier rate-limits back-to-back photo analyses; the app falls back to the demo classifier with a notice.
 **Subagents used:** cv-engineer → D2; test-writer → test_demand/test_report/test_dashboard
 **Next step (exact):** push to `origin main`, confirm the GitHub Actions run is green, then give the user the Streamlit Cloud steps.
+
+## Session 2 (cont. 2) — 2026-10-20 00:16 (agent: main agent + subagents)
+**Goal:** Deploy addendum D5 (GitHub push + CI green) and D6 (Streamlit Community Cloud live)
+**Done:**
+- D5: pushed `main` to https://github.com/Moyu0717/accesstwin (public) with plain git + Git Credential Manager (`gh` CLI not installed). The push added no new commit: `origin/main` = `71ec100` = local HEAD. GitHub Actions workflow `tests` (`.github/workflows/tests.yml`: Python 3.11, `ACCESSTWIN_MOCK=1`, validate + pytest) sat queued ~30 min on GitHub's side, then finished **passing** (run 39280158937, as reported by the user). Secret scan `bash scripts/secret_scan.sh` → clean before push (as reported).
+- D6: app live on Streamlit Community Cloud at https://accesstwin-demo.streamlit.app/ . Checked in this session with a cookie jar: `/` → HTTP 200, `/~/+/_stcore/health` → `ok`.
+- Whether Groq secrets were added on the cloud is unknown (user did not say). Without them the app runs in demo/Mock mode.
+- Local-only cleanup (not committed): `.claude/` (4 subagent files, `launch.json`) and `CLAUDE.md` are staged for deletion from the index (files kept on disk); `.gitignore` gained `.claude/` and `CLAUDE.md` (unstaged); `README.md` has one unstaged line change. `AGENTS.md` kept.
+- Doc-logging: this entry and a full rewrite of `docs/HANDOFF.md` (with the Deployment section per addendum §I). No commit made.
+**Verified by:**
+- `git log --oneline -15` → `71ec100` D4, `0dc3a94` D3, `5d42e7a` D2, `d30001c` D1, `c55a8cd` docs, `a08afc4` M8, `807fd0e` M4, `125a528` M3, `828c5ab` docs, `985bf07` M2, `87e2cec` M1, `a9b3059` M0
+- `git status` → branch `main`, up to date with `origin/main`; staged deletions of `.claude/*` and `CLAUDE.md`; unstaged `.gitignore` and `README.md`
+- `git ls-remote origin main` → `71ec100d9d0cbecc29e8ae19a9aab5d28f8e23d1`
+- `.venv/Scripts/python.exe -m pytest -q` → 140 passed, 0 failed, 0 skipped (21.6 s). Previous entry: 139 passed, 1 skipped; the difference was not investigated.
+- `curl` to the cloud app → `/` HTTP 200; `/~/+/_stcore/health` → `ok`
+- GitHub API lookup of run 39280158937 → HTTP 403 (unauthenticated rate limit); CI result taken from the user's report, not re-verified here
+**Not done / Blocked:**
+- Screenshots for `docs/screenshots/` not captured (user to do, checklist in `docs/screenshots/README.md`)
+- Real CV never run (ultralytics/torch not installed); precomputed footfall numbers and camera counts are synthetic
+- Groq secrets on the cloud: unknown, see above
+- OpenRouter not implemented
+- Pending local-only cleanup not committed (doc-logger is read-only with git); `.claude/*` and `CLAUDE.md` remain tracked on `origin/main` until committed
+- `docs/DECISIONS.md` not updated in this step (this entry was limited to two files)
+**Bugs / Known issues:**
+- Streamlit Community Cloud: the free app sleeps when idle; first load ~30 s ("Yes, get this app back up")
+- Cloud runtime data (reports, approvals, work orders) lives in a temp SQLite file and resets on app restart
+- Groq free tier rate-limits back-to-back photo analyses; the app falls back to the demo classifier with a notice (reproduced in D2)
+- OpenStreetMap tiles need internet
+**Subagents used:** doc-logger → this RUN_LOG entry and HANDOFF rewrite. No other subagent work is recorded for the D5/D6 steps.
+**Next step (exact):** Decide whether to commit the pending local-only cleanup (`.claude/` and `CLAUDE.md` deletions, `.gitignore`, `README.md`) and push; then follow the three tasks in `docs/HANDOFF.md` section 7, starting with the screenshots for the proposal.

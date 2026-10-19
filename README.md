@@ -2,7 +2,7 @@
 
 [![tests](https://github.com/Moyu0717/accesstwin/actions/workflows/tests.yml/badge.svg)](https://github.com/Moyu0717/accesstwin/actions/workflows/tests.yml)
 
-**Live demo:** _coming soon — Streamlit Community Cloud URL_ (no install, no API key needed)
+**Live demo:** https://accesstwin-demo.streamlit.app/ (no install, no API key needed — the free app may take ~30 s to wake up)
 
 AccessTwin is a township's "accessibility digital twin". It combines anonymous CCTV footfall, resident and guard
 obstacle reports, and the walkway network to tell a developer **which segment to fix first, at what cost tier, and
