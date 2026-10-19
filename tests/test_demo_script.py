@@ -59,6 +59,11 @@ def test_full_demo_script_mock_mode():
     queue.button(key=f"vq_ok_{rid}").click().run()
     assert not queue.exception
     assert store.get_overlay()["E7"]["status"] == "blocked"
+    # ... and the Footfall page shows E7 far below expected: suppressed demand.
+    ff = _page(PAGES["4"])
+    ff.button(key="ff_run").click().run()
+    assert not ff.exception
+    assert "Suppressed demand on E7" in _text(ff)
 
     # 1:30 Decide — reset, U1 preselected, index rises, U1 is #1 in the ROI ranking, work order created.
     store.reset_demo()
@@ -75,3 +80,10 @@ def test_full_demo_script_mock_mode():
     assert not sim.exception
     assert any("Pre-construction review" in i.value for i in sim.info)
     assert "U4" in _ranking(sim)["id"].tolist()
+
+    # 2:30 Dashboard — suppressed demand flagged, Planning Brief exported, Design mode header.
+    dash = _page(PAGES["6"])
+    assert int(next(m.value for m in dash.metric if m.label == "Suppressed-demand segments")) >= 1
+    dash.radio(key="dash_mode").set_value("design").run()
+    assert not dash.exception
+    assert any("Pre-construction review" in i.value for i in dash.info)

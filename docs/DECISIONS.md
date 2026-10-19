@@ -54,3 +54,11 @@ Format: date / decision / reason / alternatives considered.
 - **Synthetic precomputed data:** live CV is not installed on the dev machine (torch is too large to add casually), so `data/footfall_precomputed.json` is a clearly labelled synthetic stand-in (`"synthetic": true`). `scripts/precompute_footfall.py` regenerates it with real counts on a machine with `requirements-cv.txt` — never run yet.
 - **No sample video committed:** licence of downloadable sample clips not checked → only a Pillow-drawn preview still (`data/videos/sample_preview.png`, no people). Videos are gitignored.
 - **Camera daily counts** (synthetic): CAM_01 420, CAM_02 40 (Route A, E7), CAM_03 260, CAM_04 300. Real CV runs (mock = 0) override a camera with (in + out) × 86400 / duration × 0.1; mock/precomputed runs never override.
+
+## 2026-10-19 — D3: suppressed demand, dashboard, Planning Brief (M7)
+- **Barrier definition** for suppressed demand: an edge that is unverified or impassable for at least one persona (checked with include_unverified=True). An edge is flagged when observed/expected < 0.4 and it, or any baseline route through it, has a barrier.
+- **Gravity model** uses every residential × destination pair on the unconstrained baseline route; expected flows are scaled so the totals match over CCTV-covered edges. E11 (CAM_03) is on no shortest route → shown as "Not on any shortest route (no expected flow)" rather than a ratio.
+- **Demo result:** E7 / CAM_02 observed 40 vs expected ≈ 551 (ratio 0.07) → Suppressed demand. Others are as expected.
+- **Exports** are generated in memory and served with `st.download_button` (HTML brief + two CSVs: upgrade ranking, demand) — no server-side files, works on an ephemeral cloud filesystem.
+- **Footfall page** also lists camera counts vs expected so demo step 3 can be told from that page; the Dashboard carries the full analysis.
+- **Base township JSON** is cached with `st.cache_data`; the SQLite overlay is re-applied every rerun, and overlay-dependent results are cached by the overlay's JSON (acts as the DB version counter).

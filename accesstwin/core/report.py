@@ -1,0 +1,103 @@
+"""Single-file HTML "Planning Brief" + CSV export (spec section 5.8). Returned as strings — no server-side files."""
+from __future__ import annotations
+
+import html
+from collections import Counter
+from datetime import datetime
+
+import networkx as nx
+import pandas as pd
+
+from accesstwin.core.demand import EdgeDemand
+from accesstwin.core.personas import Persona
+from accesstwin.core.scoring import ScoreResult
+
+DISCLAIMER = (
+    "AccessTwin is a planning aid, not proof of compliance with accessibility design standards (e.g. MS 1184). "
+    "All routes and upgrades require on-site verification. Persona rules are demo assumptions. Costs are relative "
+    "tiers only (low / medium / high), never construction estimates. AI suggestions are reviewed by a person "
+    "before they change the map. CCTV analytics are aggregate counts only."
+)
+
+
+def _e(x) -> str:
+    return html.escape(str(x))
+
+
+def report_stats(reports: list[dict]) -> dict:
+    return {
+        "total": len(reports),
+        "by_status": dict(Counter(r["status"] for r in reports)),
+        "by_type": dict(Counter((r.get("ai") or {}).get("obstacle_type", "other") for r in reports)),
+        "by_role": dict(Counter(r["reporter_role"] for r in reports)),
+    }
+
+
+def brief_html(
+    G: nx.MultiGraph, personas: dict[str, Persona], scores: ScoreResult, ranking: pd.DataFrame,
+    demand: list[EdgeDemand], reports: list[dict], mode: str = "operate",
+) -> str:
+    stats = report_stats(reports)
+    title = "Pre-construction Accessibility Review" if mode == "design" else "Accessibility Planning Brief"
+    gm = scores.gap_matrix(G)
+    persona_rows = "".join(
+        f"<tr><td>{_e(personas[k].label)}</td><td>{v:.0f}</td></tr>" for k, v in scores.persona_index.items())
+    gap_head = "".join(f"<th>{_e(personas[c].label)}</th>" for c in gm.columns)
+    gap_rows = "".join(
+        "<tr><td>" + _e(idx) + "</td>" + "".join(f"<td>{v:.0f}</td>" for v in row) + "</tr>"
+        for idx, row in zip(gm.index, gm.values))
+    top = ranking.head(5) if not ranking.empty else ranking
+    up_rows = "".join(
+        f"<tr><td>#{r['rank']}</td><td><b>{_e(r['id'])}</b> {_e(r['title'])}</td><td>{_e(r['cost_tier'])}</td>"
+        f"<td>{r['delta_index']:+.1f}</td><td>{r['new_reachable_pairs']}</td><td>{r['beneficiaries']}</td>"
+        f"<td>{r['roi']:.1f}</td></tr><tr><td></td><td colspan='6' class='ex'>{_e(r['explanation'])} "
+        f"<i>Requires on-site verification after completion.</i></td></tr>"
+        for _, r in top.iterrows())
+    sup = [d for d in demand if d.suppressed]
+    sup_rows = "".join(
+        f"<tr><td>{_e(d.edge_id)}</td><td>{_e(d.cctv_id)}</td><td>{d.observed:.0f}</td><td>{d.expected:.0f}</td>"
+        f"<td>{d.ratio:.2f}</td><td>{_e('; '.join(d.barrier_reasons[:3]))}</td></tr>" for d in sup
+    ) or "<tr><td colspan='6'>No suppressed-demand segments detected.</td></tr>"
+    status_txt = ", ".join(f"{k}: {v}" for k, v in stats["by_status"].items()) or "none"
+    type_txt = ", ".join(f"{k.replace('_', ' ')}: {v}" for k, v in stats["by_type"].items()) or "none"
+    return f"""<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AccessTwin — {_e(title)}</title>
+<style>
+body{{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#1F2937;max-width:960px;margin:24px auto;padding:0 16px;line-height:1.45}}
+h1{{color:#0F766E;margin-bottom:4px}} h2{{border-bottom:2px solid #D1E7E4;padding-bottom:4px;margin-top:28px}}
+table{{border-collapse:collapse;width:100%;margin:8px 0}} th,td{{border:1px solid #E5E7EB;padding:6px 8px;text-align:left;font-size:14px;vertical-align:top}}
+th{{background:#F0F7F6}} .big{{font-size:44px;font-weight:700;color:#0F766E}} .muted{{color:#6B7280;font-size:13px}}
+.ex{{color:#374151;font-size:13px;background:#FAFAFA}} .disc{{margin-top:32px;padding:12px;border:1px solid #FCD34D;background:#FFFBEB;font-size:13px}}
+@media print{{body{{margin:0}} h2{{break-after:avoid}}}}
+</style></head><body>
+<h1>{_e(title)}</h1>
+<div class="muted">{_e(G.graph.get('meta', {}).get('name', 'Demo Township'))} — fictional demo layout · generated {datetime.now():%Y-%m-%d %H:%M} · mode: {_e(mode)}</div>
+<h2>Accessibility Gap Index</h2>
+<div class="big">{scores.index:.0f}<span style="font-size:20px"> / 100</span></div>
+<table><tr><th>Persona</th><th>Index</th></tr>{persona_rows}</table>
+<h3>Gap matrix (residential × persona, 0–100)</h3>
+<table><tr><th>Residential</th>{gap_head}</tr>{gap_rows}</table>
+<h2>Top 5 recommended upgrades (ROI = benefit ÷ cost tier)</h2>
+<table><tr><th>Rank</th><th>Upgrade</th><th>Cost tier</th><th>Δ index</th><th>New trips</th><th>Beneficiaries</th><th>ROI</th></tr>{up_rows}</table>
+<h2>Suppressed-demand segments</h2>
+<p class="muted">Observed CCTV footfall far below the gravity-model expectation on a route with a barrier: people may not walk here because they can't. Edges without CCTV are not inferred.</p>
+<table><tr><th>Edge</th><th>Camera</th><th>Observed</th><th>Expected</th><th>Ratio</th><th>Barriers</th></tr>{sup_rows}</table>
+<h2>Obstacle reports</h2>
+<p>{stats['total']} reports — by status: {_e(status_txt)}. By type: {_e(type_txt)}.</p>
+<div class="disc"><b>Disclaimer.</b> {_e(DISCLAIMER)}</div>
+<p class="muted">Print this page to PDF from your browser (Ctrl+P) to share it.</p>
+</body></html>"""
+
+
+def ranking_csv(ranking: pd.DataFrame) -> str:
+    cols = ["rank", "id", "title", "edge", "cost_tier", "delta_index", "new_reachable_pairs", "beneficiaries",
+            "avg_detour_reduction_m", "benefit", "roi", "explanation"]
+    return ranking[[c for c in cols if c in ranking.columns]].to_csv(index=False)
+
+
+def demand_csv(demand: list[EdgeDemand]) -> str:
+    return pd.DataFrame([{
+        "edge": d.edge_id, "camera": d.cctv_id, "observed": d.observed, "expected": d.expected, "ratio": d.ratio,
+        "status": d.status, "barrier_edges": " ".join(d.barrier_edges),
+    } for d in demand]).to_csv(index=False)

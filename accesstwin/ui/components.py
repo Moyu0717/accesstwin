@@ -6,7 +6,7 @@ import streamlit as st
 
 from accesstwin import config
 from accesstwin.core import store
-from accesstwin.core.graph import load_graph
+from accesstwin.core.graph import build_graph, load_township
 from accesstwin.core.personas import Persona, load_personas
 from accesstwin.ui.i18n import t
 
@@ -41,10 +41,15 @@ def personas() -> dict[str, Persona]:
     return _personas_cached()
 
 
+@st.cache_data
+def _township_cached() -> dict:
+    return load_township()
+
+
 def graph() -> nx.MultiGraph:
-    """Base JSON + SQLite overlay, reloaded on every rerun so approvals show up immediately."""
+    """Cached base JSON + the SQLite overlay, re-applied on every rerun so approvals show up immediately."""
     try:
-        return load_graph(with_overlay=True)
+        return build_graph(_township_cached(), store.get_overlay())
     except FileNotFoundError as exc:
         st.error(f"Township data not found ({exc.filename}). Run `python -m accesstwin.core.validate` to check data/.")
         st.stop()

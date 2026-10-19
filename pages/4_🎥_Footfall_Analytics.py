@@ -6,6 +6,8 @@ import streamlit as st
 
 from accesstwin import config
 from accesstwin.core import footfall, store
+from accesstwin.core.demand import demand_frame, suppressed_demand
+from accesstwin.core.footfall import camera_counts
 from accesstwin.core.graph import iter_edges
 from accesstwin.ui import components as ui
 from accesstwin.ui.i18n import t
@@ -100,5 +102,19 @@ if runs:
     st.subheader("Recent runs")
     df = pd.DataFrame(runs[::-1][:10])[["created_at", "video_name", "cctv_id", "total_in", "total_out", "manual_count", "mock"]]
     st.dataframe(df, width="stretch", hide_index=True)
+
+st.divider()
+st.subheader("📹 Camera counts vs expected demand")
+
+_demand = suppressed_demand(ui.graph(), ui.personas(), camera_counts())
+for _d in [d for d in _demand if d.suppressed]:
+    ui.card(f"🚷 Suppressed demand on {_d.edge_id} ({_d.cctv_id})",
+            f"Observed {_d.observed:.0f} pedestrians/day vs about {_d.expected:.0f} expected from the gravity model "
+            f"(ratio {_d.ratio:.2f}). The route has a barrier ({', '.join(_d.barrier_edges)}): "
+            "people may not walk here because they can't.", "bad")
+st.dataframe(demand_frame(_demand), width="stretch", hide_index=True)
+st.caption("Daily counts per camera are synthetic demo figures until real CCTV runs are recorded. "
+           "See the Planner Dashboard for the full analysis and the Planning Brief.")
+ui.page_link("pages/6_📊_Planner_Dashboard.py", label="Open the Planner Dashboard", icon="📊")
 
 ui.disclaimer()

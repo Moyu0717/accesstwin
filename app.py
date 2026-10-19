@@ -56,7 +56,10 @@ with right:
                 f"<b>{status}</b> (score {p.score * 100:.0f}/100)<br><span class='at-muted'>{why}</span>", "bad")
     st.markdown("#### ▶️ Start the demo")
     ui.page_link("pages/1_🧭_Route_Planner.py", label="1 · Route Planner — same trip, different personas", icon="🧭")
-    ui.page_link("pages/5_🏗️_Upgrade_Simulator.py", label="2 · Upgrade Simulator — what to fix first", icon="🏗️")
+    ui.page_link("pages/2_📸_Report_Obstacle.py", label="2 · Report Obstacle → Verification Queue — evidence", icon="📸")
+    ui.page_link("pages/4_🎥_Footfall_Analytics.py", label="3 · Footfall Analytics — anonymous counts", icon="🎥")
+    ui.page_link("pages/5_🏗️_Upgrade_Simulator.py", label="4 · Upgrade Simulator — what to fix first", icon="🏗️")
+    ui.page_link("pages/6_📊_Planner_Dashboard.py", label="5 · Planner Dashboard — suppressed demand & Planning Brief", icon="📊")
 
 with st.expander("Gap matrix (residential × persona, 0–100)"):
     st.dataframe(s.gap_matrix(G), width="stretch")
