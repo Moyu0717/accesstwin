@@ -20,3 +20,14 @@ Format: date / decision / reason / alternatives considered.
 ## 2026-10-19 — "Wheelchair R1 → clinic unreachable" vs. "Route B reachable"
 - **Decision:** The spec asks both that wheelchair R1 → clinic is "unreachable with reason mentioning E7" (M2) and that a fallback Route B exists at ≥2× distance (4.1, demo script). `route()` therefore reports two levels: `direct_reachable=False` with `reason="E7: step 15 cm > wheelchair user limit 2 cm"` (the shortest/Route A is not usable) and `reachable=True` for the persona detour (Route B, 1,100 m). `reason` is filled whenever the direct route is blocked, even if a detour exists. Route Planner shows the reason card plus the fallback.
 - **Alternatives:** make Route B exceed max_trip (would break the "2× longer fallback" story).
+
+## 2026-10-19 — E16 (Block C → Junction 7) given steps
+- **Decision:** E16 now has `has_step: true, curb_height_cm: 12`. Without it, wheelchair users from Block C could detour via J7 and U1 produced 0 "newly reachable" pairs, failing the M3 acceptance test. With it, Block C's wheelchair trip to the clinic is 1.56 km (> 1.5 km max trip) and U1 makes it practical (250 m). Wheelchair index is now ≈47 (spec pitch: "~50").
+- **Alternatives:** loosen the definition of "newly reachable" (less honest), lengthen Route B for everyone (breaks the 2× story).
+
+## 2026-10-19 — Definitions used by the simulator
+- **Newly reachable pair:** a (residential, persona, category) pair whose `reach` becomes 1 (reachable within the persona's max trip) when it was 0 or 0.5 before.
+- **Beneficiaries:** for each residential node, `population × vulnerable_share × (personas with a material gain ÷ 4)`; a material gain is a pair score rise ≥ 0.05 or a newly reachable pair. Assumes a node's vulnerable residents are spread evenly over the 4 personas. Avoids counting a whole block as benefiting from a 20 m shortcut.
+- **Simulated edges** get `status = verified_accessible` (`simulate_assume_verified=True`); every result card says "Requires on-site verification after completion".
+- **Ranking ties** broken by benefit. U1 ranks #1 in both modes (ROI ≈ 101 vs U2 ≈ 77).
+- **Alternatives:** count every node with any improvement (gave 355 beneficiaries for every upgrade — no discrimination).

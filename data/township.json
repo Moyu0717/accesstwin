@@ -385,15 +385,16 @@
       "to": "J7",
       "length_m": 160,
       "surface": "good",
-      "has_step": false,
-      "curb_height_cm": 2,
+      "has_step": true,
+      "curb_height_cm": 12,
       "max_slope_pct": 3,
       "width_cm": 150,
       "tactile_paving": false,
       "covered": false,
       "lit_at_night": true,
       "status": "verified_accessible",
-      "cctv_id": null
+      "cctv_id": null,
+      "note": "Short flight of steps (about 12 cm risers) from Block C down to Junction 7; no ramp."
     },
     {
       "id": "E17",
