@@ -16,3 +16,15 @@ data/videos/*.mov
 .secrets_local/
 .claude/
 CLAUDE.md
+
+# --- local-only: agent instructions, specs, logs ---
+.claude/
+reference/
+ACCESSTWIN_*.md
+AGENTS.md
+CLAUDE.md
+docs/
+scripts/secret_scan.sh
+*.log
+.venv*/
+!data/videos/sample_preview.png

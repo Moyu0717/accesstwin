@@ -22,7 +22,6 @@ reviews draft masterplans before anything is built. Built for the Sime Darby Pro
 | 🏗️ Upgrade Simulator | What-if scenarios, before/after maps, ROI ranking by cost tier, work orders |
 | 📊 Planner Dashboard | Gap heatmap, footfall heat layer, suppressed demand, Planning Brief (HTML/CSV) download |
 
-Demo walkthrough: [`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md). Screenshot checklist: [`docs/screenshots/`](docs/screenshots/README.md).
 
 ## Run locally
 Windows / PowerShell:
