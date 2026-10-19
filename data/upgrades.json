@@ -1,0 +1,93 @@
+[
+  {
+    "id": "U1",
+    "title": "Add kerb ramp at Junction 3 (Route A)",
+    "edge_id": "E7",
+    "changes": {
+      "has_step": false,
+      "curb_height_cm": 0,
+      "status": "unverified"
+    },
+    "cost_tier": "low",
+    "design_mode_only": false,
+    "rationale": "Removes the only step on the shortest route from Block A to the clinic."
+  },
+  {
+    "id": "U2",
+    "title": "Resurface broken path near Grocery",
+    "edge_id": "E12",
+    "changes": {
+      "surface": "good"
+    },
+    "cost_tier": "medium",
+    "design_mode_only": false,
+    "rationale": "Replaces broken paving that wheelchair and stroller users must avoid."
+  },
+  {
+    "id": "U3",
+    "title": "Covered walkway Block C to Bus Stop",
+    "edge_id": "E15",
+    "changes": {
+      "covered": true
+    },
+    "cost_tier": "high",
+    "design_mode_only": false,
+    "rationale": "Gives senior residents shelter from sun and rain on the walk to the bus stop."
+  },
+  {
+    "id": "U4",
+    "title": "New link path through park (design mode)",
+    "new_edge": {
+      "id": "E_NEW1",
+      "from": "J4",
+      "to": "D_PARK",
+      "length_m": 120,
+      "surface": "good",
+      "has_step": false,
+      "curb_height_cm": 0,
+      "max_slope_pct": 4,
+      "width_cm": 180,
+      "tactile_paving": true,
+      "covered": false,
+      "lit_at_night": true,
+      "status": "unverified",
+      "cctv_id": null
+    },
+    "cost_tier": "medium",
+    "design_mode_only": true,
+    "rationale": "Adds a new step-free link to the park; exists only as a design-mode proposal."
+  },
+  {
+    "id": "U5",
+    "title": "Tactile paving along Route B (J6 to Clinic)",
+    "edge_id": "E13",
+    "changes": {
+      "tactile_paving": true
+    },
+    "cost_tier": "low",
+    "design_mode_only": false,
+    "rationale": "Helps visually impaired users follow the longer clinic route."
+  },
+  {
+    "id": "U6",
+    "title": "Regrade steep link Junction 4 to Junction 3",
+    "edge_id": "E23",
+    "changes": {
+      "max_slope_pct": 6
+    },
+    "cost_tier": "high",
+    "design_mode_only": false,
+    "rationale": "Brings the slope down from about 11 percent to within the wheelchair and stroller limits."
+  },
+  {
+    "id": "U7",
+    "title": "Night lighting on Junction 6 to Junction 7",
+    "edge_id": "E24",
+    "changes": {
+      "lit_at_night": true
+    },
+    "cost_tier": "low",
+    "design_mode_only": false,
+    "rationale": "Adds lighting to an unlit path that residents use after dark."
+  }
+]

@@ -16,3 +16,7 @@ Format: date / decision / reason / alternatives considered.
 ## 2026-10-19 — Township topology designed by the main agent
 - **Decision:** The main agent fixed the exact node/edge table (16 nodes, 24 edges) before handing data generation to `data-builder`, because the Route A / Route B storyline, the "U1 ranks top 2" acceptance test and the "~50 wheelchair index" pitch number all depend on precise lengths and barriers.
 - **Key numbers:** Route A R1→J1→J3→Clinic = 450 m via E7 (15 cm step). Wheelchair Route B R1→J2→J5→J6→Clinic = 1,100 m (2.4×, uncovered).
+
+## 2026-10-19 — "Wheelchair R1 → clinic unreachable" vs. "Route B reachable"
+- **Decision:** The spec asks both that wheelchair R1 → clinic is "unreachable with reason mentioning E7" (M2) and that a fallback Route B exists at ≥2× distance (4.1, demo script). `route()` therefore reports two levels: `direct_reachable=False` with `reason="E7: step 15 cm > wheelchair user limit 2 cm"` (the shortest/Route A is not usable) and `reachable=True` for the persona detour (Route B, 1,100 m). `reason` is filled whenever the direct route is blocked, even if a detour exists. Route Planner shows the reason card plus the fallback.
+- **Alternatives:** make Route B exceed max_trip (would break the "2× longer fallback" story).

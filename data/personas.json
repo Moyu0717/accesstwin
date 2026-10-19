@@ -1,0 +1,60 @@
+{
+  "wheelchair": {
+    "label": "Wheelchair user",
+    "allow_step": false,
+    "max_curb_cm": 2,
+    "max_slope_pct": 8,
+    "min_width_cm": 90,
+    "bad_surfaces": [
+      "broken",
+      "gravel"
+    ],
+    "max_trip_m": 1500,
+    "prefers_covered": false,
+    "needs_tactile": false,
+    "equity_weight": 1.6
+  },
+  "elderly": {
+    "label": "Elderly",
+    "allow_step": true,
+    "max_curb_cm": 15,
+    "max_slope_pct": 10,
+    "min_width_cm": 60,
+    "bad_surfaces": [
+      "broken"
+    ],
+    "max_trip_m": 800,
+    "prefers_covered": true,
+    "needs_tactile": false,
+    "equity_weight": 1.4
+  },
+  "stroller": {
+    "label": "Parent with stroller",
+    "allow_step": false,
+    "max_curb_cm": 5,
+    "max_slope_pct": 10,
+    "min_width_cm": 80,
+    "bad_surfaces": [
+      "broken",
+      "gravel"
+    ],
+    "max_trip_m": 1500,
+    "prefers_covered": true,
+    "needs_tactile": false,
+    "equity_weight": 1.2
+  },
+  "visually_impaired": {
+    "label": "Visually impaired",
+    "allow_step": true,
+    "max_curb_cm": 15,
+    "max_slope_pct": 12,
+    "min_width_cm": 60,
+    "bad_surfaces": [
+      "broken"
+    ],
+    "max_trip_m": 1200,
+    "prefers_covered": false,
+    "needs_tactile": true,
+    "equity_weight": 1.5
+  }
+}
