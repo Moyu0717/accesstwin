@@ -2,17 +2,24 @@
 from __future__ import annotations
 
 import os
+import sys
 import tempfile
 from pathlib import Path
 
-try:
-    from dotenv import load_dotenv
-except ImportError:  # python-dotenv is optional at runtime
-    load_dotenv = None
+
+def in_browser() -> bool:
+    """True when running inside Pyodide/stlite (the GitHub Pages mirror): no server, no secrets, Mock only."""
+    return sys.platform == "emscripten"
+
 
 ROOT = Path(__file__).resolve().parent.parent
-if load_dotenv is not None:
-    load_dotenv(ROOT / ".env")
+if not in_browser():
+    try:
+        from dotenv import load_dotenv  # optional at runtime; never shipped to the browser mirror
+
+        load_dotenv(ROOT / ".env")
+    except ImportError:
+        pass
 
 DATA_DIR = ROOT / "data"
 PHOTOS_DIR = DATA_DIR / "photos"
@@ -54,6 +61,8 @@ def state_dir() -> Path:
     ACCESSTWIN_STATE_DIR wins; otherwise the repo's data/ folder when writable (local runs), else
     <tempdir>/accesstwin (read-only or shared cloud checkouts). Runtime state is disposable demo data.
     """
+    if in_browser():
+        return Path("/tmp/accesstwin")  # in-memory FS; resets on page reload
     explicit = get_secret("ACCESSTWIN_STATE_DIR")
     if explicit:
         return Path(explicit)
@@ -86,7 +95,12 @@ def groq_vision_model() -> str:
 
 
 def force_mock() -> bool:
-    """ACCESSTWIN_MOCK=1 forces Mock for everything; unset/0 uses real providers where keys exist."""
+    """ACCESSTWIN_MOCK=1 forces Mock for everything; unset/0 uses real providers where keys exist.
+
+    Always True in the browser mirror: an API key must never be shipped to visitors' browsers.
+    """
+    if in_browser():
+        return True
     return (get_secret("ACCESSTWIN_MOCK", "") or "").lower() in {"1", "true", "yes"}
 
 

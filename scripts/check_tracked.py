@@ -24,8 +24,10 @@ ALLOWED_FILES = {
     "README.md",
     "pytest.ini",
     ".github/workflows/tests.yml",
+    ".github/workflows/pages.yml",
     "scripts/precompute_footfall.py",
     "scripts/check_tracked.py",
+    "scripts/build_stlite_site.py",
 }
 ALLOWED_DIRS = ("pages/", "accesstwin/", "data/", "tests/")
 FORBIDDEN_IN_DATA = (".db", ".mp4", ".mov", ".avi", ".pt")

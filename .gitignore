@@ -28,3 +28,9 @@ scripts/secret_scan.sh
 *.log
 .venv*/
 !data/videos/sample_preview.png
+
+# --- local-only: handoff log, build output ---
+CODEX_HANDOFF.md
+dist/
+scripts/build_hf_space.py
+_site/
