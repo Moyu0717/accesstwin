@@ -1,10 +1,11 @@
-streamlit>=1.50
-streamlit-folium>=0.22
-folium>=0.17
-networkx>=3.2
-pandas>=2.1
-plotly>=5.20
-numpy
-pillow
-python-dotenv
-groq>=0.11
+# Streamlit Cloud runtime. Pinned to ranges the test suite passes with (see fix pack F2):
+# streamlit <1.56 keeps the classic Tornado server; 1.60+ switched to Uvicorn and loaded forever on the cloud.
+streamlit>=1.50,<1.56
+folium>=0.17,<0.21
+networkx>=3.2,<4
+pandas>=2.1,<3
+plotly>=5.20,<8
+numpy>=1.26,<3
+pillow>=10,<13
+python-dotenv>=1.0,<2
+groq>=0.11,<2

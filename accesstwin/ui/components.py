@@ -1,6 +1,9 @@
 """Shared Streamlit components: page setup, sidebar persona selector, mock badge, disclaimer."""
 from __future__ import annotations
 
+import json
+from typing import Callable
+
 import networkx as nx
 import streamlit as st
 
@@ -14,8 +17,10 @@ PERSONA_ICONS = {"wheelchair": "♿", "elderly": "🧓", "stroller": "👶", "vi
 PERSONA_SHORT = {"wheelchair": "Wheelchair", "elderly": "Elderly", "stroller": "Stroller", "visually_impaired": "Low vision"}
 
 
-def setup_page(title: str, icon: str = "♿") -> None:
-    st.set_page_config(page_title=f"{title} · AccessTwin", page_icon=icon, layout="wide")
+def setup_page(title: str, icon: str = "♿", page_config_done: bool = False) -> None:
+    """Page config (unless the caller already set it to paint something instantly), DB init and CSS."""
+    if not page_config_done:
+        st.set_page_config(page_title=f"{title} · AccessTwin", page_icon=icon, layout="wide")
     store.init_db()
     st.markdown(
         """
@@ -44,6 +49,20 @@ def personas() -> dict[str, Persona]:
 @st.cache_data
 def _township_cached() -> dict:
     return load_township()
+
+
+def overlay_key() -> str:
+    """Hashable fingerprint of the SQLite overlay — the cache key for every overlay-dependent result."""
+    return json.dumps(store.get_overlay(), sort_keys=True)
+
+
+def run_page(body: Callable[[], None]) -> None:
+    """Run a page body; any unexpected error is shown on the page instead of leaving it blank."""
+    try:
+        body()
+    except Exception as exc:  # st.stop / st.rerun raise BaseException subclasses, so they pass through untouched
+        st.error("Something went wrong on this page. Try **Reset demo data** in the sidebar, or reload.")
+        st.exception(exc)
 
 
 def graph() -> nx.MultiGraph:
@@ -103,10 +122,12 @@ def sidebar() -> Persona:
                     "equity weight": p.equity_weight,
                 }
             )
+        st.toggle("Show segment IDs on maps", key="show_ids", value=st.session_state.get("show_ids", False))
         st.caption(t("fictional"))
         st.divider()
         if st.button(t("reset"), help="Clears reports, verifications and work orders, then re-seeds sample reports."):
             store.reset_demo()
+            st.cache_data.clear()
             st.success("Demo data reset.")
     return ps[choice]
 
