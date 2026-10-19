@@ -7,6 +7,5 @@ plotly>=5.20
 numpy
 pillow
 python-dotenv
-opencv-python-headless>=4.9
-google-genai>=1.0
+groq>=0.11
 pytest

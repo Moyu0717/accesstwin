@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import tempfile
 from pathlib import Path
 
 try:
@@ -16,21 +17,92 @@ if load_dotenv is not None:
 DATA_DIR = ROOT / "data"
 PHOTOS_DIR = DATA_DIR / "photos"
 VIDEOS_DIR = DATA_DIR / "videos"
-UPLOADS_DIR = DATA_DIR / "uploads"
 TOWNSHIP_PATH = DATA_DIR / "township.json"
 PERSONAS_PATH = DATA_DIR / "personas.json"
 UPGRADES_PATH = DATA_DIR / "upgrades.json"
 SAMPLE_REPORTS_PATH = DATA_DIR / "sample_reports.json"
-DB_PATH = Path(os.getenv("ACCESSTWIN_DB", str(DATA_DIR / "accesstwin.db")))
+FOOTFALL_PRECOMPUTED_PATH = DATA_DIR / "footfall_precomputed.json"
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "").strip()
+
+def get_secret(name: str, default: str | None = None) -> str | None:
+    """st.secrets (Streamlit Cloud) → environment / .env → default. Never raises."""
+    try:
+        import streamlit as st
+
+        if name in st.secrets:
+            return str(st.secrets[name]).strip()
+    except Exception:  # no secrets.toml, or not running under Streamlit
+        pass
+    value = os.environ.get(name)
+    return value.strip() if value is not None else default
+
+
+def _writable(path: Path) -> bool:
+    try:
+        path.mkdir(parents=True, exist_ok=True)
+        probe = path / ".write_test"
+        probe.write_text("ok", encoding="utf-8")
+        probe.unlink()
+        return True
+    except OSError:
+        return False
+
+
+def state_dir() -> Path:
+    """Where runtime state (SQLite DB, uploads) lives.
+
+    ACCESSTWIN_STATE_DIR wins; otherwise the repo's data/ folder when writable (local runs), else
+    <tempdir>/accesstwin (read-only or shared cloud checkouts). Runtime state is disposable demo data.
+    """
+    explicit = get_secret("ACCESSTWIN_STATE_DIR")
+    if explicit:
+        return Path(explicit)
+    if _writable(DATA_DIR):
+        return DATA_DIR
+    return Path(tempfile.gettempdir()) / "accesstwin"
+
+
+STATE_DIR = state_dir()
+
+
+def resolve_path(p: str | Path) -> Path:
+    """Stored paths are repo-relative POSIX strings, or absolute for uploads in the state dir."""
+    p = Path(p)
+    return p if p.is_absolute() else ROOT / p
+
+UPLOADS_DIR = STATE_DIR / "uploads"
+DB_PATH = Path(get_secret("ACCESSTWIN_DB") or str(STATE_DIR / "accesstwin.db"))
+
+# Vision AI (addendum B). Model ids are checked against Groq's docs, never guessed — see DECISIONS.md.
+DEFAULT_GROQ_VISION_MODEL = "qwen/qwen3.8-27b"
+
+
+def groq_api_key() -> str:
+    return get_secret("GROQ_API_KEY", "") or ""
+
+
+def groq_vision_model() -> str:
+    return get_secret("GROQ_VISION_MODEL", "") or DEFAULT_GROQ_VISION_MODEL
+
+
+def force_mock() -> bool:
+    """ACCESSTWIN_MOCK=1 forces Mock for everything; unset/0 uses real providers where keys exist."""
+    return (get_secret("ACCESSTWIN_MOCK", "") or "").lower() in {"1", "true", "yes"}
+
+
+def vision_provider() -> str:
+    """'groq' | 'mock'. VISION_PROVIDER may force one; default is groq when a key exists."""
+    if force_mock():
+        return "mock"
+    wanted = (get_secret("VISION_PROVIDER", "") or "").lower()
+    if wanted == "mock":
+        return "mock"
+    return "groq" if groq_api_key() else "mock"
 
 
 def mock_mode() -> bool:
-    """Mock is on when ACCESSTWIN_MOCK=1 or when no Gemini key is configured."""
-    flag = os.getenv("ACCESSTWIN_MOCK", "1").strip().lower() in {"1", "true", "yes"}
-    return flag or not GEMINI_API_KEY
+    """True when the photo AI runs on the demo classifier (no key, or Mock forced)."""
+    return vision_provider() == "mock"
 
 
 # Routing penalties (section 4.2 / 5.1)

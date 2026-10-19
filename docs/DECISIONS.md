@@ -38,3 +38,13 @@ Format: date / decision / reason / alternatives considered.
 - **Mock AI before M5:** `obstacles.py` uses filename keywords (`blocked` → blocked_ramp, `curb/kerb/step` → high_curb, `ramp` → missing_ramp, `crack/broken` → broken_surface, else other @0.3). The Gemini path (JSON-only prompt, parse → retry once → manual dropdown) is coded but **not verified** — that is M5.
 - **Streamlit ≥ 1.50:** pages use `width="stretch"` (the `use_container_width` argument is deprecated in 1.66); requirements bumped from 1.38 to 1.50.
 - **Page smoke tests:** every page runs under `streamlit.testing.v1.AppTest` in `pytest`, plus a report → approve → reroute flow test through the real pages.
+
+## 2026-10-19 — Deploy addendum D0/D1: Groq replaces Gemini
+- **Repo / access:** user created the public repo `Moyu0717/accesstwin`. `gh` is not installed, so pushing uses plain `git push` with Git Credential Manager (browser login on the user's machine) and CI status is read from the public GitHub API. No Groq key yet → everything runs on the demo classifier (Mock).
+- **Vision model:** `qwen/qwen3.8-27b`, checked on 2026-10-19 against https://console.groq.com/docs/vision (the only generally available image-input model listed; `meta-models/muse-spark-open` is limited preview; the Llama 4 Scout id from the addendum's 2025 example is no longer listed). Default in `config.DEFAULT_GROQ_VISION_MODEL`, overridable with `GROQ_VISION_MODEL`. Not yet called live (no key).
+- **Provider abstraction:** `config.vision_provider()` → `groq` when `GROQ_API_KEY` exists and Mock is not forced, else `mock`. `ACCESSTWIN_MOCK=1` forces Mock; unset/0 uses real providers where keys exist (default changed from "1" to unset per addendum B.2). OpenRouter not implemented (documented as future work — Groq alone covers the need).
+- **Secrets:** `config.get_secret()` reads `st.secrets` → env/.env → default, never raises.
+- **Requests:** image → RGB JPEG ≤ 1024 px, q85, base64 data URL; `response_format=json_object`, falling back to the plain JSON-only prompt on HTTP 400; temperature 0.2, 30 s timeout, SDK retries off (we do our own: invalid JSON → retry once → manual dropdown). 429/timeout/network → demo classifier + "AI temporarily unavailable — using demo classifier".
+- **State dir:** `ACCESSTWIN_STATE_DIR` if set, else `data/` when writable, else `<tempdir>/accesstwin` — decided by a write probe, not by guessing the OS. Uploaded photos are stored as absolute paths in that dir; seed photos as repo-relative POSIX paths.
+- **opencv-python-headless** moved to `requirements-cv.txt`: nothing on the cloud path imports it.
+- **Line endings:** added `.gitattributes` (`* text=auto`) because Python's `write_text` on Windows writes CRLF.

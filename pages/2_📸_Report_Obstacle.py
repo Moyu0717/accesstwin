@@ -50,9 +50,11 @@ ai = dict(st.session_state[cache_key])
 
 with col_ai:
     source = ai.get("source", "mock")
-    badge = {"mock": "🧪 Mock AI (filename keywords)", "gemini": "✨ Gemini Vision",
-             "manual_required": "✍️ AI could not parse — choose manually"}[source]
-    st.markdown(f"**AI suggestion** · {badge}")
+    badge = f"AI: Groq · {ai.get('model', '')}" if source == "groq" else (
+        "AI: could not parse — choose manually" if source == "manual_required" else "AI: Demo classifier (Mock)")
+    st.markdown(f"**AI suggestion** · `{badge}`")
+    if ai.get("notice"):
+        st.warning(ai["notice"])
     if source == "manual_required":
         ai["obstacle_type"] = st.selectbox("Obstacle type", OBSTACLE_TYPES, index=OBSTACLE_TYPES.index("other"), key="ro_manual_type")
         ai["severity"] = st.selectbox("Severity", SEVERITIES, index=1, key="ro_manual_sev")
@@ -83,9 +85,9 @@ if st.button("Submit report", type="primary", key="ro_submit"):
         config.UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
         dest = config.UPLOADS_DIR / f"{uuid.uuid4().hex[:10]}{Path(filename).suffix.lower()}"
         dest.write_bytes(image_bytes)
-        photo_path = str(dest.relative_to(config.ROOT))
+        photo_path = dest.as_posix()
     else:
-        photo_path = str((config.PHOTOS_DIR / filename).relative_to(config.ROOT))
+        photo_path = (config.PHOTOS_DIR / filename).relative_to(config.ROOT).as_posix()
     rid = store.add_report(edge_id, role, photo_path, ai)
     st.success(f"Report #{rid} submitted for {edge_id} — status **pending**. A guard/admin will review it in the Verification Queue.")
     ui.page_link("pages/3_✅_Verification_Queue.py", label="Open the Verification Queue", icon="✅")

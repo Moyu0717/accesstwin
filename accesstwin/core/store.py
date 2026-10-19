@@ -105,7 +105,7 @@ def seed_sample_reports(path: Path | str | None = None) -> int:
             "needs_onsite_measurement": s.get("needs_onsite_measurement", []),
             "source": "seed",
         }
-        photo = str(Path("data") / "photos" / s["photo"]) if s.get("photo") else None
+        photo = f"data/photos/{s['photo']}" if s.get("photo") else None
         rid = add_report(s["edge_id"], s["reporter_role"], photo, ai)
         if s.get("status") in ("approved", "rejected"):
             set_report_status(rid, s["status"])
@@ -221,3 +221,24 @@ def list_work_orders() -> list[dict]:
     with connect() as conn:
         conn.executescript(SCHEMA)
         return [dict(r) for r in conn.execute("SELECT * FROM work_orders ORDER BY id").fetchall()]
+
+
+# ---- footfall runs ---------------------------------------------------------
+
+def add_footfall_run(video_name: str, cctv_id: str | None, total_in: int, total_out: int,
+                     buckets_json: str, manual_count: int | None, mock: int) -> int:
+    with connect() as conn:
+        conn.executescript(SCHEMA)
+        cur = conn.execute(
+            "INSERT INTO footfall_runs (video_name, cctv_id, total_in, total_out, buckets_json, manual_count, mock, created_at) "
+            "VALUES (?,?,?,?,?,?,?,?)",
+            (video_name, cctv_id, int(total_in), int(total_out), buckets_json,
+             None if manual_count is None else int(manual_count), int(mock), _now()),
+        )
+        return int(cur.lastrowid)
+
+
+def list_footfall_runs() -> list[dict]:
+    with connect() as conn:
+        conn.executescript(SCHEMA)
+        return [dict(r) for r in conn.execute("SELECT * FROM footfall_runs ORDER BY id").fetchall()]

@@ -19,7 +19,7 @@
 | Commercial | 10% | Cross-township SaaS + design-stage review + ESG / accessibility reporting output |
 | Evidence & Pitch | 10% | Built-in KPI panel (count error, detection accuracy, before/after) + 3-minute demo script |
 
-- Must be free: Python, Streamlit, OpenCV, Ultralytics YOLO (`yolov8n.pt` / `yolo11n.pt`), `supervision`, NetworkX, Folium + `streamlit-folium`, SQLite, Pandas, Plotly, pytest. Vision AI uses the **Gemini Flash free tier from Google AI Studio** (model name read from `.env`, never hard-coded). Deployment: **Streamlit Community Cloud** or **Hugging Face Spaces** (free).
+- Must be free: Python, Streamlit, OpenCV, Ultralytics YOLO (`yolov8n.pt` / `yolo11n.pt`), `supervision`, NetworkX, Folium + `streamlit-folium`, SQLite, Pandas, Plotly, pytest. Vision AI uses **Groq (see ACCESSTWIN_DEPLOY_ADDENDUM.md)** — free tier, model name read from `.env` / secrets, never hard-coded. Deployment: **Streamlit Community Cloud** or **Hugging Face Spaces** (free).
 - Forbidden: any paid API as a required dependency; face recognition; cross-camera tracking of individuals; labelling AI output as "certified accessible".
 
 ---
@@ -54,7 +54,7 @@
 | Main agent (orchestration, core logic) | **Claude Sonnet 5.5** (`/model sonnet`) | Strong coding at moderate cost; drives the whole project |
 | Subagents for simple / repetitive work | **Claude Haiku 5.5** | Cheap and fast for synthetic data, tests, docs, format checks |
 | Optional one-off architecture review | Claude Opus 5.5 | Only when stuck or for a final review |
-| Vision AI inside the prototype | Gemini Flash (AI Studio free tier) | Free; automatically falls back to Mock without a key |
+| Vision AI inside the prototype | Groq vision (see addendum) | Free; automatically falls back to Mock without a key |
 
 ### 2.1 Create these subagent files in the project (`.claude/agents/`)
 
@@ -116,7 +116,7 @@ accesstwin/
 ├── README.md                 # install, run, deploy, demo script
 ├── requirements.txt
 ├── requirements-cv.txt       # ultralytics + supervision (optional, local only)
-├── .env.example              # GEMINI_API_KEY= ; GEMINI_MODEL= ; ACCESSTWIN_MOCK=1
+├── .env.example              # GROQ_API_KEY= ; GROQ_VISION_MODEL= ; ACCESSTWIN_MOCK=
 ├── .streamlit/config.toml    # theme
 ├── app.py                    # Streamlit entry (home = index overview)
 ├── pages/
@@ -137,7 +137,7 @@ accesstwin/
 │   │   ├── simulation.py     # what-if and ROI ranking
 │   │   ├── demand.py         # gravity model, suppressed demand
 │   │   ├── footfall.py       # CV counting
-│   │   ├── obstacles.py      # Gemini Vision + Mock
+│   │   ├── obstacles.py      # Groq vision + Mock (see addendum)
 │   │   ├── store.py          # SQLite (reports, verifications, footfall_runs, work_orders)
 │   │   ├── report.py         # export HTML/CSV planning brief
 │   │   └── validate.py       # data schema checks (runnable via python -m)
@@ -295,7 +295,7 @@ For each residential node r, persona p, destination category c (nearest reachabl
 - In Mock mode, seed counts so that the Route A camera shows suppression.
 
 ### 5.6 `obstacles.py` — Photo Obstacle Detection
-- With `GEMINI_API_KEY`: call `GEMINI_MODEL` via `google-genai` (read from env; example value `gemini-2.5-flash` — if renamed, use the current free Flash model in AI Studio).
+- With `GROQ_API_KEY`: call `GROQ_VISION_MODEL` via the `groq` SDK — Groq (see addendum §B; the model id is checked against Groq's docs, never guessed).
 - Prompt must request **JSON only**:
 ```json
 {"obstacle_type": "high_curb|missing_ramp|blocked_ramp|broken_surface|narrow_path|no_tactile|flooding|other|none",
@@ -346,7 +346,7 @@ UI language: English primary. Keep labels in one `i18n` dict so Bahasa Malaysia 
 | M2 | `graph.py`, `personas.py`, `routing.py` + Route Planner page | main + test-writer | Tests: wheelchair R1 → clinic is unreachable with reason mentioning E7; elderly reachable; `include_unverified` toggle changes results |
 | M3 | `scoring.py`, `simulation.py` + Upgrade Simulator page | main + test-writer | Tests: applying U1 raises wheelchair index and new reachable pairs > 0; U1 (low cost, high benefit) ranks top 2 in ROI |
 | M4 | `store.py`, Report Obstacle, Verification Queue (Mock AI) | main | Report → approve → edge turns blocked → route recomputes (overlay logic verified in tests) |
-| M5 | `obstacles.py` with Gemini (optional key) | main | Mock works without key; with key, one sample photo returns valid JSON |
+| M5 | `obstacles.py` with Groq (see addendum; optional key) | main | Mock works without key; with key, one sample photo returns valid JSON |
 | M6 | `footfall.py` + Footfall page | cv-engineer | Counts produced on sample video; Mock runs without ultralytics; no frames written to disk (tested) |
 | M7 | `demand.py` + Planner Dashboard + `report.py` | main | Dashboard shows at least 1 suppressed-demand edge; exported HTML opens |
 | M8 | Polish: theme, copy, empty states, error handling | main | Full 3-minute demo script runs end-to-end without errors in Mock mode |
@@ -399,7 +399,7 @@ UI language: English primary. Keep labels in one `i18n` dict so Bahasa Malaysia 
 ## 2. Milestone checklist
 - [x]/[ ] M0 … M9 (one-line status each)
 ## 3. How to run
-- setup / run / test / mock mode / real Gemini / real CV commands
+- setup / run / test / mock mode / real Groq / real CV commands
 ## 4. Architecture map
 - one-line responsibility per module + key function names
 ## 5. Data & assumptions

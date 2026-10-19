@@ -73,3 +73,18 @@ Append-only. One entry per session / milestone (template: spec section 9.1).
 - No pages 4 (Footfall) and 6 (Dashboard) yet.
 **Subagents used:** test-writer → M3 tests, M4 tests; doc-logger → this log and `docs/HANDOFF.md`
 **Next step (exact):** Put a free AI Studio key in `.env` (`GEMINI_API_KEY`, `GEMINI_MODEL`, `ACCESSTWIN_MOCK=0`), restart Streamlit, and run Report Obstacle on `data/photos/curb_high_step.png`. Confirm the returned JSON is valid (M5). Then start M6 with cv-engineer.
+
+## Session 2 — 2026-10-19 23:34 (agent: Claude Code, model: Claude Opus 5.5 main + Haiku/Sonnet subagents)
+**Goal:** Deploy addendum D0 (questions) + D1 (Groq vision provider, secrets loader, tests)
+**Done:**
+- D0: repo `Moyu0717/accesstwin` (public, empty) provided by the user. `gh` not installed → plain git push + public GitHub API for CI. No `.env` / Groq key yet → Mock.
+- D1: `accesstwin/config.py` (get_secret, vision_provider, force_mock, state_dir, resolve_path), `accesstwin/core/obstacles.py` (Groq via `groq` SDK, image pre-processing, fallbacks), Report Obstacle badge `AI: Groq · <model>` / `AI: Demo classifier (Mock)`, `.env.example`, `.streamlit/secrets.toml.example`, `.gitignore`, `.gitattributes`, requirements (google-genai removed, groq added, opencv moved to requirements-cv.txt). Spec §0/§2/§5.6 and AGENTS.md/CLAUDE.md now point to the addendum.
+**Verified by:**
+- `pytest -q --ignore=tests/test_footfall.py` → 115 passed, 1 skipped (live Groq test skipped: no key)
+- `grep -ri gemini` over code/requirements → no matches
+**Not done / Blocked:**
+- Live Groq call not tested (needs the user's key in `.env`).
+**Bugs / Known issues:**
+- None new.
+**Subagents used:** test-writer → tests/test_vision_groq.py; cv-engineer → D2 footfall (in progress)
+**Next step (exact):** finish D2 (footfall) and D3 (dashboard), then run addendum §E checks.

@@ -9,8 +9,8 @@ LABELS: dict[str, dict[str, str]] = {
         "tagline": "A township accessibility digital twin — which segment to fix first, at what cost tier, and who gains access.",
         "fictional": "Fictional demo layout (Elmina-style Demo Township). Not a real site.",
         "persona": "Persona",
-        "mock_badge": "MOCK MODE — offline demo, no API keys used",
-        "live_badge": "Live AI mode (Gemini key configured)",
+        "mock_badge": "DEMO MODE — photo AI uses the demo classifier (no API key)",
+        "live_badge": "Live AI — Groq vision configured",
         "persona_assumption": "Persona rules are demo assumptions — not a design standard.",
         "disclaimer": (
             "AccessTwin is a planning aid, not proof of compliance with accessibility design standards "

@@ -1,9 +1,11 @@
-"""Photo obstacle detection (spec section 5.6): Gemini Vision when a key is set, otherwise Mock.
+"""Photo obstacle detection (spec 5.6 + addendum B): Groq vision when a key is set, otherwise Mock.
 
 AI output is only ever a *suggestion pending review*; graph state changes only after a guard/admin approves.
 """
 from __future__ import annotations
 
+import base64
+import io
 import json
 import re
 
@@ -93,34 +95,76 @@ def parse_ai_json(text: str) -> dict | None:
     }
 
 
-def _gemini_call(image_bytes: bytes, mime_type: str) -> str:
-    from google import genai  # imported lazily; optional at runtime
-    from google.genai import types
-
-    client = genai.Client(api_key=config.GEMINI_API_KEY)
-    resp = client.models.generate_content(
-        model=config.GEMINI_MODEL,
-        contents=[types.Part.from_bytes(data=image_bytes, mime_type=mime_type), PROMPT],
-        config=types.GenerateContentConfig(response_mime_type="application/json", temperature=0.1),
-    )
-    return resp.text or ""
+MAX_SIDE_PX = 1024
+JPEG_QUALITY = 85
+TIMEOUT_S = 30
+UNAVAILABLE_NOTICE = "AI temporarily unavailable — using demo classifier"
 
 
-def analyze_photo(image_bytes: bytes, filename: str, mime_type: str = "image/jpeg") -> dict:
-    """Return the AI suggestion dict with a `source` key: "mock", "gemini" or "manual_required".
+def preprocess_image(image_bytes: bytes) -> bytes:
+    """RGB JPEG, longest side ≤ 1024 px, quality 85 — keeps requests small (addendum B.1)."""
+    from PIL import Image
 
-    Gemini path (M5, needs GEMINI_API_KEY + GEMINI_MODEL): parse failure → retry once → still failing →
-    {"source": "manual_required"} so the UI shows a manual category dropdown.
+    with Image.open(io.BytesIO(image_bytes)) as img:
+        img = img.convert("RGB")
+        img.thumbnail((MAX_SIDE_PX, MAX_SIDE_PX))
+        out = io.BytesIO()
+        img.save(out, format="JPEG", quality=JPEG_QUALITY)
+    return out.getvalue()
+
+
+def _groq_client():
+    from groq import Groq  # imported lazily so Mock mode never needs the SDK
+
+    return Groq(api_key=config.groq_api_key(), timeout=TIMEOUT_S, max_retries=0)
+
+
+def _groq_call(jpeg_bytes: bytes, client=None) -> str:
+    client = client or _groq_client()
+    data_url = "data:image/jpeg;base64," + base64.b64encode(jpeg_bytes).decode("ascii")
+    messages = [{"role": "user", "content": [
+        {"type": "text", "text": PROMPT},
+        {"type": "image_url", "image_url": {"url": data_url}},
+    ]}]
+    kwargs = dict(model=config.groq_vision_model(), messages=messages, temperature=0.2)
+    try:
+        resp = client.chat.completions.create(response_format={"type": "json_object"}, **kwargs)
+    except Exception as exc:
+        # Some models reject JSON mode with images: retry with the strict "JSON only" prompt alone.
+        if getattr(exc, "status_code", None) == 400:
+            resp = client.chat.completions.create(**kwargs)
+        else:
+            raise
+    return resp.choices[0].message.content or ""
+
+
+def _is_transient(exc: Exception) -> bool:
+    """429 / timeouts / connection errors → fall back to the demo classifier with a notice."""
+    status = getattr(exc, "status_code", None)
+    name = type(exc).__name__
+    return status == 429 or "Timeout" in name or "Connection" in name or "RateLimit" in name
+
+
+def analyze_photo(image_bytes: bytes, filename: str, mime_type: str = "image/jpeg", client=None) -> dict:
+    """Return the suggestion (spec 5.6 schema) plus `source` ("mock" | "groq" | "manual_required") and `model`.
+
+    Groq path: invalid JSON → retry once → Mock result + manual dropdown (source "manual_required").
+    429 / network / timeout → Mock result with `notice`. Never raises.
     """
-    if config.mock_mode() or not config.GEMINI_MODEL:
-        return mock_analyze(filename)
-    last_error = None
+    if config.vision_provider() != "groq":
+        return {**mock_analyze(filename), "model": "demo classifier"}
+    model = config.groq_vision_model()
+    try:
+        jpeg = preprocess_image(image_bytes)
+    except Exception:
+        return {**mock_analyze(filename), "model": "demo classifier", "notice": "Could not read the image file."}
     for _attempt in range(2):
         try:
-            parsed = parse_ai_json(_gemini_call(image_bytes, mime_type))
-        except Exception as exc:  # network / quota / SDK errors
-            last_error = str(exc)
-            parsed = None
+            parsed = parse_ai_json(_groq_call(jpeg, client))
+        except Exception as exc:
+            reason = UNAVAILABLE_NOTICE if _is_transient(exc) else f"{UNAVAILABLE_NOTICE} ({type(exc).__name__})"
+            return {**mock_analyze(filename), "model": "demo classifier", "notice": reason}
         if parsed:
-            return {**parsed, "source": "gemini"}
-    return {**_MOCK_DEFAULT, "source": "manual_required", "error": last_error or "unparseable response"}
+            return {**parsed, "source": "groq", "model": model}
+    return {**mock_analyze(filename), "source": "manual_required", "model": model,
+            "notice": "The AI reply was not valid JSON twice — please choose the category manually."}

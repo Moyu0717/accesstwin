@@ -49,7 +49,7 @@ for r in pending:
     edge = find_edge(G, r["edge_id"]) or {}
     with st.container(border=True):
         c1, c2, c3 = st.columns([1, 2, 1])
-        photo = config.ROOT / r["photo_path"] if r.get("photo_path") else None
+        photo = config.resolve_path(r["photo_path"]) if r.get("photo_path") else None
         if photo and photo.exists():
             c1.image(str(photo), width="stretch")
         else:
