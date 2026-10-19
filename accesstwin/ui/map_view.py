@@ -59,7 +59,8 @@ def base_map(
     lats = [float(d["lat"]) for _, d in G.nodes(data=True)]
     lons = [float(d["lon"]) for _, d in G.nodes(data=True)]
     m = folium.Map(location=[sum(lats) / len(lats), sum(lons) / len(lons)], zoom_start=zoom,
-                   tiles="OpenStreetMap", control_scale=True)
+                   tiles="OpenStreetMap", control_scale=True, scrollWheelZoom=False)
+    m.fit_bounds([[min(lats), min(lons)], [max(lats), max(lons)]], padding=(20, 20))
     highlight = set(highlight_edges)
 
     for edge in iter_edges(G):

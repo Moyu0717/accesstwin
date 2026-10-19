@@ -49,7 +49,7 @@ avail = available_upgrades(upgrades, mode)
 by_id = {u["id"]: u for u in avail}
 default = [u for u in st.session_state.get("sim_selected", ["U1"]) if u in by_id]
 
-left, right = st.columns([1, 3])
+left, right = st.columns([2, 5])
 with left:
     st.subheader("Candidate upgrades")
     selected = st.multiselect(
@@ -75,9 +75,9 @@ with right:
         m1, m2, m3, m4 = st.columns(4)
         m1.metric("Township index", f"{d.index_after:.1f}", f"{d.index_delta:+.1f}")
         pdelta = d.persona_delta()
-        m2.metric(f"{ui.persona_label(persona.key)} index", f"{d.persona_after[persona.key]:.0f}", f"{pdelta[persona.key]:+.1f}")
-        m3.metric("Newly reachable trips", len(d.newly_reachable))
-        m4.metric("Est. beneficiaries", f"{d.beneficiaries:.0f}", help="population × vulnerable share, spread over the 4 personas")
+        m2.metric(f"{ui.persona_short(persona.key)} index", f"{d.persona_after[persona.key]:.0f}", f"{pdelta[persona.key]:+.1f}")
+        m3.metric("New trips", len(d.newly_reachable))
+        m4.metric("Beneficiaries", f"{d.beneficiaries:.0f}", help="population × vulnerable share, spread over the 4 personas")
         ui.card("💡 What changes", text + f"<br><span class='at-muted'>⚠️ {t('onsite')}</span>", "good" if d.index_delta > 0 else "")
 
         changed = [u.get("edge_id") or u["new_edge"]["id"] for u in chosen]

@@ -23,7 +23,7 @@ def test_report_approve_blocks_edge_and_reroutes():
     at = _run("2")
     at.radio(key="ro_src").set_value("Use a sample photo").run()
     at.selectbox(key="ro_sample").set_value("curb_high_step.png").run()
-    assert any("high curb" in m.value for m in at.metric)
+    assert any("Suggested type: high curb" in m.value for m in at.markdown)
     at.selectbox(key="ro_edge").set_value("E7").run()
     at.radio(key="ro_role").set_value("resident").run()
     at.button(key="ro_submit").click().run()

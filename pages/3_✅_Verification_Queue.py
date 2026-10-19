@@ -63,7 +63,7 @@ for r in pending:
         )
         if ai.get("needs_onsite_measurement"):
             c2.caption("📏 Measure on site: " + ", ".join(ai["needs_onsite_measurement"]))
-        if c3.button("✅ Approve (mark blocked)", key=f"vq_ok_{r['id']}", type="primary"):
+        if c3.button("✅ Approve", help="Marks this segment blocked", key=f"vq_ok_{r['id']}", type="primary"):
             store.set_report_status(r["id"], "approved")
             st.session_state["vq_flash"] = (f"Report #{r['id']} approved — {r['edge_id']} is now blocked. "
                                             + impact_text(r["edge_id"], G, load_graph()))

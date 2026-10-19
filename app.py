@@ -29,14 +29,14 @@ st.caption(t("fictional"))
 
 top, cards = st.columns([1, 3])
 with top:
-    st.metric("Accessibility Gap Index", f"{s.index:.0f} / 100",
+    st.metric("Gap Index", f"{s.index:.0f} / 100",
               help="Weighted by population × vulnerable share × persona equity weight. 100 = every resident can reach "
                    "every key destination directly within a comfortable distance.")
     st.caption("“A path on the map doesn’t mean you can get there.”")
 with cards:
     cols = st.columns(len(P))
     for col, (key, p) in zip(cols, P.items()):
-        col.metric(ui.persona_label(key), f"{s.persona_index[key]:.0f}")
+        col.metric(ui.persona_short(key), f"{s.persona_index[key]:.0f}", help=p.label)
     st.caption(t("persona_assumption"))
 
 left, right = st.columns([3, 2])

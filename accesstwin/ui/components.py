@@ -11,6 +11,7 @@ from accesstwin.core.personas import Persona, load_personas
 from accesstwin.ui.i18n import t
 
 PERSONA_ICONS = {"wheelchair": "♿", "elderly": "🧓", "stroller": "👶", "visually_impaired": "🦯"}
+PERSONA_SHORT = {"wheelchair": "Wheelchair", "elderly": "Elderly", "stroller": "Stroller", "visually_impaired": "Low vision"}
 
 
 def setup_page(title: str, icon: str = "♿") -> None:
@@ -54,6 +55,10 @@ def graph() -> nx.MultiGraph:
 
 def persona_label(key: str) -> str:
     return f"{PERSONA_ICONS.get(key, '')} {personas()[key].label}"
+
+
+def persona_short(key: str) -> str:
+    return f"{PERSONA_ICONS.get(key, '')} {PERSONA_SHORT.get(key, personas()[key].label)}"
 
 
 def sidebar() -> Persona:
@@ -115,7 +120,7 @@ def card(title: str, body: str, kind: str = "") -> None:
 
 
 def fmt_m(metres: float) -> str:
-    return f"{metres / 1000:.2f} km" if metres >= 1000 else f"{metres:.0f} m"
+    return f"{metres / 1000:.1f} km" if metres >= 1000 else f"{metres:.0f} m"
 
 
 def page_link(page: str, label: str, icon: str | None = None) -> None:
