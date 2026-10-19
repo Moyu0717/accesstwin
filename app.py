@@ -42,7 +42,7 @@ with cards:
 left, right = st.columns([3, 2])
 with left:
     st_folium(base_map(G, persona, pending_reports=store.list_reports("pending")), height=480,
-              use_container_width=True, returned_objects=[], key="home_map")
+              width="stretch", returned_objects=[], key="home_map")
     st.caption(LEGEND_MD)
     st.caption(t("unverified_notice"))
 with right:
@@ -55,10 +55,10 @@ with right:
         ui.card(f"{i}. {ui.persona_label(p.persona)} · {node_name(G, p.residential)} → {p.category.replace('_', ' ')}",
                 f"<b>{status}</b> (score {p.score * 100:.0f}/100)<br><span class='at-muted'>{why}</span>", "bad")
     st.markdown("#### ▶️ Start the demo")
-    st.page_link("pages/1_🧭_Route_Planner.py", label="1 · Route Planner — same trip, different personas", icon="🧭")
-    st.page_link("pages/5_🏗️_Upgrade_Simulator.py", label="2 · Upgrade Simulator — what to fix first", icon="🏗️")
+    ui.page_link("pages/1_🧭_Route_Planner.py", label="1 · Route Planner — same trip, different personas", icon="🧭")
+    ui.page_link("pages/5_🏗️_Upgrade_Simulator.py", label="2 · Upgrade Simulator — what to fix first", icon="🏗️")
 
 with st.expander("Gap matrix (residential × persona, 0–100)"):
-    st.dataframe(s.gap_matrix(G), use_container_width=True)
+    st.dataframe(s.gap_matrix(G), width="stretch")
 
 ui.disclaimer()

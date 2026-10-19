@@ -97,10 +97,10 @@ with right:
                     {"from": node_name(G, x["residential"]), "persona": ui.persona_label(x["persona"]),
                      "destination": node_name(G, x["dest"]), "distance": ui.fmt_m(x["length_m"]), "before": x["before"]}
                     for x in d.newly_reachable
-                ], hide_index=True, use_container_width=True)
+                ], hide_index=True, width="stretch")
         st.dataframe([{"persona": ui.persona_label(k), "before": round(d.persona_before[k], 1),
                        "after": round(d.persona_after[k], 1), "change": round(pdelta[k], 1)} for k in P],
-                     hide_index=True, use_container_width=True)
+                     hide_index=True, width="stretch")
 
 st.divider()
 st.subheader("📈 Upgrade ROI ranking")
@@ -113,9 +113,9 @@ else:
                  color_discrete_map={"low": "#16A34A", "medium": "#F59E0B", "high": "#DC2626"},
                  hover_data=["title", "delta_index", "new_reachable_pairs", "beneficiaries"])
     fig.update_layout(yaxis={"categoryorder": "total ascending"}, height=320, margin=dict(l=10, r=10, t=10, b=10))
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
     st.dataframe(df[["rank", "id", "title", "cost_tier", "delta_index", "new_reachable_pairs", "beneficiaries",
-                     "avg_detour_reduction_m", "benefit", "roi"]], hide_index=True, use_container_width=True)
+                     "avg_detour_reduction_m", "benefit", "roi"]], hide_index=True, width="stretch")
     with st.expander("Top 5 — plain-language explanations", expanded=False):
         for _, row in df.head(5).iterrows():
             st.markdown(f"**#{row['rank']} {row['id']}** — {row['explanation']}  \n_{t('onsite')}_")
@@ -129,6 +129,6 @@ else:
         st.success(f"Work order #{oid} created for {wo_target} (status: open).")
     orders = store.list_work_orders()
     if orders:
-        st.dataframe(orders, hide_index=True, use_container_width=True)
+        st.dataframe(orders, hide_index=True, width="stretch")
 
 ui.disclaimer()

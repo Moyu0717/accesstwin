@@ -77,6 +77,6 @@ with right:
                 "detour": f"{rr.detour_ratio:.2f}×" if rr.reachable else "—",
                 "reason": rr.reason or "",
             })
-        st.dataframe(rows, hide_index=True, use_container_width=True)
+        st.dataframe(rows, hide_index=True, width="stretch")
 
 ui.disclaimer()

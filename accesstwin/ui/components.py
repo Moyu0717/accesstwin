@@ -42,7 +42,14 @@ def personas() -> dict[str, Persona]:
 
 def graph() -> nx.MultiGraph:
     """Base JSON + SQLite overlay, reloaded on every rerun so approvals show up immediately."""
-    return load_graph(with_overlay=True)
+    try:
+        return load_graph(with_overlay=True)
+    except FileNotFoundError as exc:
+        st.error(f"Township data not found ({exc.filename}). Run `python -m accesstwin.core.validate` to check data/.")
+        st.stop()
+    except Exception as exc:  # corrupt JSON / DB
+        st.error(f"Could not load the township graph: {exc}. Try **Reset demo data** in the sidebar.")
+        st.stop()
 
 
 def persona_label(key: str) -> str:
@@ -109,3 +116,11 @@ def card(title: str, body: str, kind: str = "") -> None:
 
 def fmt_m(metres: float) -> str:
     return f"{metres / 1000:.2f} km" if metres >= 1000 else f"{metres:.0f} m"
+
+
+def page_link(page: str, label: str, icon: str | None = None) -> None:
+    """st.page_link that degrades to a caption when the page registry is unavailable (e.g. a page run on its own)."""
+    try:
+        st.page_link(page, label=label, icon=icon)
+    except Exception:  # StreamlitPageNotFoundError
+        st.caption(f"{icon or ''} {label} (open it from the sidebar)")

@@ -31,3 +31,10 @@ Format: date / decision / reason / alternatives considered.
 - **Simulated edges** get `status = verified_accessible` (`simulate_assume_verified=True`); every result card says "Requires on-site verification after completion".
 - **Ranking ties** broken by benefit. U1 ranks #1 in both modes (ROI ≈ 101 vs U2 ≈ 77).
 - **Alternatives:** count every node with any improvement (gave 355 beneficiaries for every upgrade — no discrimination).
+
+## 2026-10-19 — M4 implementation choices
+- **Overlay derived, not stored:** the overlay is computed from approved reports (→ blocked) and verifications (passable → verified_accessible, not passable → blocked); the latest event per edge wins. No extra table beyond the 4 in spec 5.7.
+- **Seed reports:** `init_db()` seeds `data/sample_reports.json` into an empty DB; seeds with status `approved` immediately block their edge (E20, E21). "Reset demo data" wipes all 4 tables and re-seeds.
+- **Mock AI before M5:** `obstacles.py` uses filename keywords (`blocked` → blocked_ramp, `curb/kerb/step` → high_curb, `ramp` → missing_ramp, `crack/broken` → broken_surface, else other @0.3). The Gemini path (JSON-only prompt, parse → retry once → manual dropdown) is coded but **not verified** — that is M5.
+- **Streamlit ≥ 1.50:** pages use `width="stretch"` (the `use_container_width` argument is deprecated in 1.66); requirements bumped from 1.38 to 1.50.
+- **Page smoke tests:** every page runs under `streamlit.testing.v1.AppTest` in `pytest`, plus a report → approve → reroute flow test through the real pages.
