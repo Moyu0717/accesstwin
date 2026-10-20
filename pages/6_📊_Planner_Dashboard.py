@@ -5,7 +5,7 @@ import plotly.express as px
 import streamlit as st
 
 from accesstwin import config
-from accesstwin.core import report, store
+from accesstwin.core import report, store, validation
 from accesstwin.core.demand import demand_frame
 from accesstwin.core.graph import find_edge, node_name
 from accesstwin.core.simulation import load_upgrades
@@ -154,6 +154,15 @@ def main() -> None:
             st.dataframe(ranking.head(5)[["rank", "id", "title", "cost_tier", "delta_index", "roi"]], hide_index=True, width="stretch")
 
     work_order_board()
+
+    with st.expander("🔬 Evidence & validation (what is measured, synthetic or planned)"):
+        fc, cc = validation.footfall_check(), validation.classifier_check()
+        st.dataframe(validation.kpi_rows(fc, cc, cached.bundle(okey, mode)), hide_index=True, width="stretch",
+                     column_config={"status": st.column_config.TextColumn("status", width="large")})
+        st.markdown("**Bundled photos: expected vs demo classifier**")
+        st.dataframe(cc["rows"], hide_index=True, width="stretch")
+        st.caption("No field validation has been done yet. Synthetic and planned items are labelled; nothing here is "
+                   "a measured result from a real township.")
 
     st.subheader("📄 Export Planning Brief")
     html_doc = cached.brief_html(okey, counts_key, mode, json.dumps([[r['id'], r['status']] for r in reports]))
