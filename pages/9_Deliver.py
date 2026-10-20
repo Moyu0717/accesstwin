@@ -32,18 +32,26 @@ def main() -> None:
         return
     version = cached.data_version(okey)
     st.markdown(f"<div class='at-eyebrow' style='display:flex;justify-content:space-between'>"
-                f"<span>{ws.esc(t('deliver_title'))} / 01</span><span class='at-chip'>Draft</span></div>",
+                f"<span>{ws.esc(t('deliver_title'))} / 01</span><span><span class='at-chip'>Draft</span> "
+                f"<span class='at-chip sim'>Simulated</span> <span class='at-chip syn'>Synthetic</span></span></div>",
                 unsafe_allow_html=True)
-    st.markdown(f"## {loc.label} · intervention brief")
+    st.markdown(f"<div class='at-h2'>{ws.esc(loc.label)} · intervention brief</div>", unsafe_allow_html=True)
     st.markdown("<div class='at-sub'>A concise record of the barrier, the proposed response and the next decision.</div>",
                 unsafe_allow_html=True)
     rows = ws.compare_rows(okey, loc, persona.key)
+    top = st.container()  # primary download sits above the fold; filled once the brief is built
+    if rows:
+        st.markdown(f"<div class='at-sub'><b>Conclusion (simulated):</b> {ws.esc(rows[0]['assessment'])} "
+                    f"{ws.esc(rows[0]['baseline'])} → {ws.esc(rows[0]['scenario'])} ({ws.esc(rows[0]['change'])}).</div>",
+                    unsafe_allow_html=True)
     for i, (head, body) in enumerate(STEPS, 1):
         st.markdown(f"<div class='at-section' style='display:flex;gap:18px'><span style='color:#8E4326'>{i:02d}</span>"
                     f"<div><b>{ws.esc(head)}</b><div class='at-muted'>{ws.esc(body)}</div></div></div>",
                     unsafe_allow_html=True)
     if rows:
         st.markdown(ws.rows_table_html(rows), unsafe_allow_html=True)
+        st.markdown("<div class='at-mobile-only at-muted'>Swipe the table sideways to see every column.</div>",
+                    unsafe_allow_html=True)
     else:
         st.info(f"{loc.label} ({loc.edge_id}): {t('not_assessed')} — confirm site conditions before a proposal.")
     st.markdown("<div class='at-section at-muted'><b>Assumptions.</b> Synthetic demo network; persona rules are demo "
@@ -58,6 +66,8 @@ def main() -> None:
     w = csv.DictWriter(buf, fieldnames=["assessment", "baseline", "scenario", "change", "source"])
     w.writeheader()
     w.writerows(rows)
+    top.download_button("Download study brief (HTML) ↓", html_doc, "accesstwin_study_brief.html", "text/html",
+                        type="primary", key="dl_brief_top", use_container_width=True)
     d1, d2 = st.columns(2)
     d1.download_button("Download study brief (HTML) ↓", html_doc, "accesstwin_study_brief.html", "text/html",
                        type="primary", key="dl_brief", use_container_width=True)

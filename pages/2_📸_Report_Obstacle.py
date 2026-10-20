@@ -33,8 +33,10 @@ def main() -> None:
             st.warning("No sample photos found in data/photos/.")
         else:
             st.markdown("**Try a sample photo** — one click analyses it.")
-            cols = st.columns(min(len(samples), 5))
-            for i, name in enumerate(samples):
+            credits = ui.photo_credits()
+            gallery = [s for s in samples if s in credits] or samples  # credited photos replace the placeholders
+            cols = st.columns(min(len(gallery), 4))
+            for i, name in enumerate(gallery):
                 with cols[i % len(cols)]:
                     st.image(str(config.PHOTOS_DIR / name), caption=ui.photo_caption(name), width="stretch")
                     if st.button("Analyse", key=f"ro_pick_{name}", help=f"Analyse {name}"):

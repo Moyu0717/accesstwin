@@ -60,7 +60,7 @@ def test_verify_unverified_edge():
 def test_simulator_work_order():
     store.reset_demo()
     at = _run("5")
-    assert any("Township index" in m.label for m in at.metric)
+    assert any(m.label == "Access Score" for m in at.metric)
     at.button(key="sim_wo_btn").click().run()
     assert not at.exception
     assert len(store.list_work_orders()) == 1

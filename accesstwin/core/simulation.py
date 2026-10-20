@@ -169,8 +169,10 @@ def explain(G: nx.MultiGraph, d: Delta, personas: dict[str, Persona], reductions
         r, p, c = biggest["key"]
         same = [x for x in reductions if x["key"][1] == p and x["key"][2] == c]
         froms = _join(sorted({node_name(G, x["key"][0]) for x in same}))
+        far = node_name(G, r)
         parts.append(f"{head} lets {group_noun(personas[p])} from {froms} reach the {c.replace('_', ' ')} more directly; "
-                     f"the detour drops from {_fmt(biggest['before'])} to {_fmt(biggest['after'])}.")
+                     f"the largest change is from {far}, where the detour drops from {_fmt(biggest['before'])} "
+                     f"to {_fmt(biggest['after'])}.")
     if d.newly_reachable:
         cats = sorted({x["category"].replace("_", " ") for x in d.newly_reachable})
         verb = "" if biggest else f"{head}: "
@@ -179,9 +181,9 @@ def explain(G: nx.MultiGraph, d: Delta, personas: dict[str, Persona], reductions
     pdelta = d.persona_delta()
     top_p = max(pdelta, key=lambda k: pdelta[k])
     parts.append(f"{personas[top_p].label} index {d.persona_before[top_p]:.0f} → {d.persona_after[top_p]:.0f}; "
-                 f"township index {d.index_before:.1f} → {d.index_after:.1f} ({d.index_delta:+.1f}).")
+                 f"Access Score {d.index_before:.1f} → {d.index_after:.1f} ({d.index_delta:+.1f}).")
     if d.beneficiaries >= 1:
-        parts.append(f"An estimated {d.beneficiaries:.0f} residents who need extra mobility support benefit.")
+        parts.append(f"An estimated {d.beneficiaries:.0f} residents who need extra mobility support benefit (model estimate).")
     return " ".join(parts)
 
 

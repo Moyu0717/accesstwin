@@ -3,7 +3,7 @@
     "id": "SR1",
     "edge_id": "E7",
     "reporter_role": "resident",
-    "photo": "curb_high_step.png",
+    "photo": "curb_kerb_edge_01.jpg",
     "obstacle_type": "high_curb",
     "note": "Step at the clinic entrance is too high for my wheelchair.",
     "status": "pending"
@@ -12,7 +12,7 @@
     "id": "SR2",
     "edge_id": "E20",
     "reporter_role": "guard",
-    "photo": "ramp_blocked_car.png",
+    "photo": "ramp_blocked_car_02.jpg",
     "obstacle_type": "blocked_ramp",
     "note": "Parked cars block the kerb ramp most mornings.",
     "status": "approved"
@@ -21,7 +21,7 @@
     "id": "SR3",
     "edge_id": "E12",
     "reporter_role": "resident",
-    "photo": "path_crack_broken.png",
+    "photo": "crack_broken_tiles_03.jpg",
     "obstacle_type": "broken_surface",
     "note": "Slabs are broken near the grocery approach.",
     "status": "pending"
@@ -30,7 +30,7 @@
     "id": "SR4",
     "edge_id": "E24",
     "reporter_role": "guard",
-    "photo": "dark_path_night.png",
+    "photo": "dark_road_night_06.jpg",
     "obstacle_type": "other",
     "note": "No lighting on this path after dusk.",
     "status": "pending"
@@ -39,7 +39,7 @@
     "id": "SR5",
     "edge_id": "E21",
     "reporter_role": "resident",
-    "photo": "gravel_path_school.png",
+    "photo": "gravel_road_04.jpg",
     "obstacle_type": "other",
     "note": "Loose gravel makes the school path hard to push over.",
     "status": "approved"

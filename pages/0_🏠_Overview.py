@@ -58,7 +58,8 @@ def inspector(loc, okey: str, scenario: tuple, persona, G) -> None:
     st.markdown(f"<div class='at-eyebrow' style='display:flex;justify-content:space-between'>"
                 f"<span>{ws.esc(t('location_details'))}</span><span>{ws.esc(loc.edge_id)}</span></div>",
                 unsafe_allow_html=True)
-    action_box(loc, scenario, "top")
+    with st.container(key="ws_top_action"):
+        action_box(loc, scenario, "top")
     kind_cls = {"barrier": "blocked", "inspection": "pending", "blocked": "blocked"}[loc.kind]
     status = "Proposed scenario" if scenario else loc.status_text
     mark = "◆" if scenario else {"barrier": "●", "inspection": "○", "blocked": "✖"}[loc.kind]
@@ -76,14 +77,11 @@ def inspector(loc, okey: str, scenario: tuple, persona, G) -> None:
     if loc.kind == "inspection" or not (loc.origin and loc.dest):
         st.markdown(
             f"<div class='at-section'><div class='at-eyebrow'>{ws.esc(ui.persona_short(persona.key))} "
-            f"{ws.esc(t('journey_head'))}</div><div class='at-grid2'>"
-            f"<div><div class='at-muted'>{ws.esc(t('shortest_reference'))}</div><div class='at-big'>—</div>"
-            f"<div class='at-muted'>{ws.esc(t('not_assessed'))}</div></div>"
-            f"<div><div class='at-muted'>{ws.esc(t('available_route'))}</div><div class='at-big'>—</div>"
-            f"<div class='at-muted'>{ws.esc(t('not_assessed'))}</div></div></div></div>"
+            f"{ws.esc(t('journey_head'))}</div><div class='at-big'>— <small>{ws.esc(t('not_assessed'))}</small></div>"
+            f"<div class='at-muted'>No journey impact is estimated until the site record is confirmed.</div></div>"
             f"<div class='at-section'><div class='at-eyebrow'>Profile impact</div>"
-            f"<div class='at-muted'>Profile impact requires verification — {ws.esc(t('not_assessed'))}.</div></div>",
-            unsafe_allow_html=True)
+            f"<div class='at-muted'>{ws.esc(t('not_assessed'))} — which profiles are affected depends on the site "
+            f"inspection.</div></div>", unsafe_allow_html=True)
     else:
         journey_section(loc, okey, scenario, persona)
         tags = "".join(f"<span>{ws.esc(ui.persona_short(k))}</span>" for k in loc.affected) or "<span>None</span>"
@@ -103,8 +101,9 @@ def action_box(loc, scenario: tuple, where: str) -> None:
                 f"{ws.esc(t('next_action'))}</div></div>", unsafe_allow_html=True)
     if loc.upgrade:
         up = loc.upgrade
-        st.markdown(f"<div class='at-kv'><b style='color:var(--text-primary)'>{ws.esc(up['title'])}</b>"
-                    f"<span>{ws.esc(up['cost_tier'].capitalize())} cost tier</span></div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='font-weight:600;font-size:15px'>{ws.esc(up['title'])}</div>"
+                    f"<div class='at-muted' style='margin:4px 0 10px'><span class='at-chip'>{ws.esc(up['cost_tier'].capitalize())} cost tier</span></div>",
+                    unsafe_allow_html=True)
         if scenario:
             st.button(f"↩ {t('return_baseline')}", key=f"ws_return_{where}", type="primary", use_container_width=True,
                       on_click=_set_scenario, args=((),))
@@ -114,10 +113,10 @@ def action_box(loc, scenario: tuple, where: str) -> None:
                       on_click=_set_scenario, args=((up["id"],),))
         st.caption(t("sim_only"))
     else:
-        st.markdown(f"<div class='at-kv'><b style='color:var(--text-primary)'>{ws.esc(t('confirm_site'))}</b>"
-                    f"<span>{ws.esc(t('not_estimated'))}</span></div>", unsafe_allow_html=True)
-        if where == "top":
-            ws._page_link("pages/3_✅_Verification_Queue.py", f"{t('open_queue')} ↗")
+        st.markdown(f"<div style='font-weight:600;font-size:15px'>{ws.esc(t('confirm_site'))}</div>"
+                    f"<div class='at-muted' style='margin:4px 0 10px'><span class='at-chip'>{ws.esc(t('not_estimated'))}</span></div>",
+                    unsafe_allow_html=True)
+        ws._page_link("pages/3_✅_Verification_Queue.py", f"{t('open_queue')} ↗")
         st.caption("Verify the record before proposing a change.")
 
 
@@ -153,6 +152,7 @@ def main() -> None:
                  format_func=lambda i: f"{ids.index(i) + 1:02d} · {by_id[i].label} — {i} · {by_id[i].status_text}",
                  on_change=lambda: c.update(segment=st.session_state["ws_segment"], scenario=()))
         st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+        st.markdown("<span class='at-ws-list'></span>", unsafe_allow_html=True)
         base = cached.scores(okey)
         if scenario:
             d, _ = cached.scenario(okey, scenario)
@@ -167,14 +167,19 @@ def main() -> None:
 
     with centre:
         st.markdown("<span class='at-ws-map'></span>", unsafe_allow_html=True)
-        h1, h2 = st.columns([3, 2], vertical_alignment="bottom")
-        with h1:
-            st.markdown("<div class='at-eyebrow'>Demo Township / Access network</div>", unsafe_allow_html=True)
-            st.markdown(f"## {loc.label} · {'ramp scenario' if scenario else 'existing conditions'}")
-        with h2:
-            st.markdown(f"<div style='text-align:right'><span class='at-chip {'sim' if scenario else ''}'>"
-                        f"{'Simulated · scenario' if scenario else 'Baseline'}</span> "
-                        f"<span class='at-chip syn'>Synthetic</span></div>", unsafe_allow_html=True)
+        st.markdown(
+            f"<div class='at-mobile-only at-muted'>AccessTwin · Demo Township · Study 01</div>"
+            f"<div class='at-eyebrow' style='display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap'>"
+            f"<span>Demo Township / Access network</span><span><span class='at-chip {'sim' if scenario else ''}'>"
+            f"{'Simulated · scenario' if scenario else 'Baseline'}</span> <span class='at-chip syn'>Synthetic</span>"
+            f"</span></div><div class='at-h2'>{ws.esc(loc.label)} · "
+            f"{'ramp scenario' if scenario else 'existing conditions'}</div>", unsafe_allow_html=True)
+        # phones: conclusion + primary action before the map
+        st.markdown(f"<div class='at-mobile-only'><div class='at-status {'sim' if scenario else 'blocked'}'>"
+                    f"{ws.esc('Proposed scenario' if scenario else loc.status_text)} · {ws.esc(loc.edge_id)} · "
+                    f"{ws.esc(loc.condition_value)} {ws.esc(loc.condition_unit)}</div></div>", unsafe_allow_html=True)
+        with st.container(key="ws_mobile_action"):
+            action_box(loc, scenario, "mobile")
         street = st.toggle(t("street_map"), key="ws_street", value=False,
                            help="Optional OpenStreetMap background. The default plan view needs no tiles.")
         routes, legend = [], []
@@ -189,7 +194,7 @@ def main() -> None:
                 legend.append([f"3px dashed {DETOUR_COLOUR}", "Accessible detour"])
         legend.append(["2px solid #A63429", "! Barrier / ✖ blocked"])
         legend.append(["2px dashed #687064", "Unverified"])
-        show_map(height=560, overlay_key=okey, persona_key=persona.key, routes_key=json.dumps(routes),
+        show_map(height=600, overlay_key=okey, persona_key=persona.key, routes_key=json.dumps(routes),
                  upgrades_key=json.dumps(list(scenario)), selected=loc.edge_id,
                  selected_label=f"{loc.label} · {loc.edge_id}", street=street, legend_key=json.dumps(legend),
                  show_ids=st.session_state.get("show_ids", False))

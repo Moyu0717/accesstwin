@@ -158,8 +158,12 @@ def test_files_map_urls_relative_and_encoded(site):
         assert not url.startswith("./."), key
         assert all(ord(ch) < 128 for ch in url), f"raw non-ASCII in url: {url}"
     page_urls = [e["url"] for k, e in files.items() if k.startswith("pages/")]
-    assert page_urls and all("%F0%9F" in u or "%" in u for u in page_urls)
+    assert page_urls
+    # Emoji page names are percent-encoded; plain-ASCII V2 pages (8_Compare, 9_Deliver) stay readable.
     assert any("%F0%9F" in u for u in page_urls)  # emoji page names (e.g. the route planner icon)
+    ascii_pages = [u for u in page_urls if u.endswith(("8_Compare.py", "9_Deliver.py"))]
+    assert len(ascii_pages) == 2, page_urls
+    assert all("%" not in u for u in ascii_pages), ascii_pages
 
 
 def test_every_mapped_file_exists_in_output(site):

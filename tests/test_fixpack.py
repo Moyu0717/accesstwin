@@ -9,7 +9,7 @@ from streamlit.testing.v1 import AppTest
 
 from accesstwin.core import store
 from accesstwin.core.graph import build_graph, iter_edges, load_township
-from accesstwin.ui.map_view import map_html
+from accesstwin.ui.map_view import UPGRADED_COLOUR, map_html
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -51,8 +51,10 @@ def test_map_html_draws_route_polyline_with_its_node_coordinates():
 
 
 def test_map_html_applies_highlight_after_upgrade():
+    # V2 plan-view palette: the upgraded segment is drawn in UPGRADED_COLOUR (was amber #F59E0B).
     html = _map(upgrades_key='["U1"]', highlight_key='["E7"]')
-    assert "#F59E0B" in html
+    assert UPGRADED_COLOUR in html
+    assert "#F59E0B" not in html
 
 
 def test_map_html_draws_circle_marker_for_circles_key():

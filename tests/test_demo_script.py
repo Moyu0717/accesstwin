@@ -1,4 +1,5 @@
 """M8 acceptance: the 3-minute demo script (docs/DEMO_SCRIPT.md) runs end-to-end in Mock mode without errors."""
+import re
 from pathlib import Path
 
 from streamlit.testing.v1 import AppTest
@@ -27,16 +28,26 @@ def _text(at: AppTest) -> str:
     return " ".join(m.body for m in at.markdown)
 
 
+def _download_labels(at: AppTest) -> list[str]:
+    """Download buttons are not exposed by AppTest; read their labels from the protobuf element."""
+    return [str(el.proto.label) for el in at.get("download_button")]
+
+
 def test_full_demo_script_mock_mode():
     assert config.mock_mode()
     store.reset_demo()
 
-    # 0:00 Home — headline index and wheelchair under 50.
-    home = _page(str(ROOT / "app.py"))
-    values = {m.label: m.value for m in home.metric}
-    assert values["Gap Index"].endswith("/ 100")
-    assert int(values["♿ Wheelchair"]) < 50
-    assert "Top 3 critical gaps" in " ".join(h.value for h in home.subheader)
+    # 0:00 Network (V2 workspace) — E7 "Clinic approach" selected first, reference path interrupted,
+    # wheelchair Access Score bar under 50, Access Score shown as the headline index.
+    home = _page(PAGES["0"])
+    net_html = "\n".join(m.value for m in home.markdown)
+    assert "Clinic approach" in _text(home)
+    assert "Shortest reference path" in net_html
+    assert "Access Score" in net_html
+    priority = home.radio(key="ws_segment").options
+    assert "Clinic approach" in priority[0] and "E7" in priority[0]
+    wheel_bar = re.search(r"<span>Wheelchair</span>.*?at-num'>([\d.]+)</span>", net_html, re.S)
+    assert wheel_bar and float(wheel_bar.group(1)) < 50
 
     # 0:30 Route Planner — elderly direct, wheelchair blocked at E7 with a 2×+ fallback.
     elderly = _page(PAGES["1"], persona="elderly")
@@ -65,15 +76,29 @@ def test_full_demo_script_mock_mode():
     assert not ff.exception
     assert "Suppressed demand on E7" in _text(ff)
 
-    # 1:30 Decide — reset, U1 preselected, index rises, U1 is #1 in the ROI ranking, work order created.
+    # 1:30 Decide — reset, U1 preselected, index rises, U1 is #1 in the priority ranking, work order created.
     store.reset_demo()
     sim = _page(PAGES["5"])
     metrics = {m.label: m for m in sim.metric}
-    assert metrics["Township index"].delta.startswith("+")
-    assert int(metrics["New trips"].value) > 0
+    assert metrics["Access Score"].delta.startswith("+")
+    assert int(metrics["Newly reachable (modelled)"].value) > 0
     assert _ranking(sim).iloc[0]["id"] == "U1"
     sim.button(key="sim_wo_btn").click().run()
     assert not sim.exception and store.list_work_orders()
+
+    # 1:45 Compare — same Baseline / Scenario snapshot: Access Score row with a positive change, one aligned table.
+    cmp_page = _page(PAGES["8"])
+    table = next(m.value for m in cmp_page.markdown if "class='at-cmp'" in m.value)
+    access_row = re.search(r"<tr><td>Access Score</td>.*?</tr>", table)
+    assert access_row, "Access Score row missing from the Compare table"
+    assert re.search(r"<td>\+\d+\.\d</td>", access_row.group(0))
+    assert "Simulated" in table or "Model" in table
+
+    # 2:00 Deliver — the study brief is offered as a download for the same snapshot.
+    deliver = _page(PAGES["9"])
+    labels = _download_labels(deliver)
+    assert "Download study brief (HTML) ↓" in labels
+    assert "Download comparison (CSV) ↓" in labels
 
     # 2:30 Scale — Design mode shows the pre-construction header and the design-only upgrade U4.
     sim.radio(key="sim_mode").set_value("design").run()

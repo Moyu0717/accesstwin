@@ -29,20 +29,20 @@ def main() -> None:
                 f"<span>{ws.esc(t('compare_title'))} / 01</span><span class='at-chip sim'>Simulated</span></div>",
                 unsafe_allow_html=True)
     if not loc.upgrade:
-        st.markdown(f"## {loc.label} · no proposal yet")
+        st.markdown(f"<div class='at-h2'>{ws.esc(loc.label)} · no proposal yet</div>", unsafe_allow_html=True)
         st.info(f"{loc.label} ({loc.edge_id}) needs on-site inspection first — {t('not_assessed')}. "
                 "No scenario is modelled, so there is nothing to compare.")
         ws.status_bar(False, cached.data_version(okey))
         return
     up = loc.upgrade
-    st.markdown(f"## {loc.label} · {up['title']}")
+    st.markdown(f"<div class='at-h2'>{ws.esc(loc.label)} · {ws.esc(up['title'])}</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='at-sub'>The same journey and the same map extent, with one change at {ws.esc(loc.edge_id)}. "
                 "Compare the route and its modelled effect.</div>", unsafe_allow_html=True)
 
     left, right = st.columns([2.3, 1], gap="medium")
     with left:
         view = st.radio("Map view", ["Baseline", "Scenario"], horizontal=True, key="cmp_view",
-                        format_func=lambda v: "01 / Baseline" if v == "Baseline" else f"02 / {up['title']} (Simulated)")
+                        format_func=lambda v: "01 · Baseline" if v == "Baseline" else "02 · Scenario (Simulated)")
         ids = (up["id"],) if view == "Scenario" else ()
         routes, legend = [], []
         if loc.origin and loc.dest:
@@ -61,8 +61,9 @@ def main() -> None:
                  selected="" if ids else loc.edge_id, selected_label="" if ids else f"{loc.label} · {loc.edge_id}",
                  legend_key=json.dumps(legend))
         st.caption(f"{'Simulated' if ids else 'Available'} journey ({ui.persona_short(persona.key)}): {journey_txt}. "
-                   "One map with a Baseline / Scenario switch (same extent) keeps the page fast in the browser mirror.")
+                   "Both views use the same map extent.")
     with right:
+        st.markdown("<span class='at-ws-score'></span>", unsafe_allow_html=True)
         d, text = cached.scenario(okey, (up["id"],))
         st.markdown(f"<div class='at-eyebrow'>{ws.esc(t('access_score'))} · Simulated</div>"
                     f"<div class='at-score'>{d.index_after:.1f}<small> /100</small></div>"

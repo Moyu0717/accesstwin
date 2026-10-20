@@ -16,7 +16,7 @@ digraph G {
   route [label="Persona routing\\nwheelchair · elderly ·\\nstroller · visually impaired"];
   gap  [label="Access Score\\n(0–100, higher is better)"];
   sup  [label="Suppressed demand\\n(people may not walk\\nhere because they can't)"];
-  roi  [label="Upgrade ROI\\nbenefit ÷ cost tier"];
+  roi  [label="Upgrade priority score\\nbenefit ÷ cost tier"];
   wo   [label="Work orders →\\nfix → verify on site"];
   cctv -> sup; rep -> net; net -> route -> gap -> roi -> wo; sup -> roi; wo -> net [style=dashed, label=" updates"];
 }

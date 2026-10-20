@@ -63,7 +63,8 @@ def test_brief_is_html_document_with_required_sections(ctx):
     doc = _brief(ctx)
     assert isinstance(doc, str)
     assert doc.startswith("<!doctype html>")
-    for needle in ("Accessibility Gap Index", "Top 5", "Suppressed", "E7", "planning aid"):
+    # V2 rename: the brief's headline score is "Access Score" (higher is better).
+    for needle in ("Access Score", "Top 5", "Suppressed", "E7", "planning aid"):
         assert needle in doc, needle
 
 

@@ -81,9 +81,10 @@ def persona_label(key: str) -> str:
 
 
 def persona_short(key: str) -> str:
+    """Plain-text short profile name (V2: no emoji in labels)."""
     if current_lang() != "en":
-        return persona_label(key)
-    return f"{PERSONA_ICONS.get(key, '')} {PERSONA_SHORT.get(key, personas()[key].label)}"
+        return t("p_short_" + key)
+    return PERSONA_SHORT.get(key, personas()[key].label)
 
 
 def sidebar() -> Persona:
@@ -210,7 +211,7 @@ def bundle_card(b, key_prefix: str = "bundle", allow_apply: bool = False) -> Non
         m3.metric("Estimated residents (model)", f"{d.beneficiaries:.0f}", help="population × vulnerable share (model estimate)")
         m4.metric("Wheelchair index", f"{d.persona_after.get('wheelchair', 0):.0f}",
                   f"{d.persona_delta().get('wheelchair', 0):+.1f}")
-        st.caption("Estimated beneficiaries by persona: " + ", ".join(
+        st.caption("Estimated residents (model) by profile: " + ", ".join(
             f"{persona_short(k)} {v:.0f}" for k, v in d.beneficiaries_by_persona.items()))
         st.markdown(b.explanation)
         st.caption("⚠️ Requires on-site verification after completion. Model estimate on fictional demo data.")

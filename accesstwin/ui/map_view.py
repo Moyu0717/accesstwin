@@ -80,7 +80,7 @@ def base_map(
     m.fit_bounds([[min(lats), min(lons)], [max(lats), max(lons)]], padding=(28, 28))
     if not street:
         m.get_root().header.add_child(folium.Element(
-            "<style>.leaflet-container{background:" + MAP_BACKGROUND + ";font-family:'Segoe UI',Arial,sans-serif}</style>"))
+            "<style>.leaflet-container{background:" + MAP_BACKGROUND + " !important;font-family:'Segoe UI',Arial,sans-serif}</style>"))
     highlight = set(highlight_edges)
 
     for edge in iter_edges(G):
@@ -135,8 +135,8 @@ def base_map(
 
 def _label(m: folium.Map, loc, text: str) -> None:
     folium.map.Marker(loc, icon=folium.DivIcon(icon_size=(160, 16), icon_anchor=(-9, 7), html=(
-        "<div style='font-size:11px;letter-spacing:.4px;color:#3F4A36;white-space:nowrap;"
-        "text-shadow:0 0 3px #E9ECE1,0 0 3px #E9ECE1'>" + html.escape(str(text)) + "</div>"))).add_to(m)
+        "<div style='font-size:12px;letter-spacing:.3px;color:#2F382A;white-space:nowrap;"
+        "text-shadow:0 0 3px #E9ECE1,0 0 3px #E9ECE1,0 0 3px #E9ECE1'>" + html.escape(str(text)) + "</div>"))).add_to(m)
 
 
 def add_barrier_marker(m: folium.Map, G: nx.MultiGraph, edge_id: str, label: str) -> None:
@@ -144,7 +144,7 @@ def add_barrier_marker(m: folium.Map, G: nx.MultiGraph, edge_id: str, label: str
     e = find_edge(G, edge_id)
     if not e:
         return
-    folium.map.Marker(edge_midpoint(G, e), tooltip=label, icon=folium.DivIcon(icon_size=(220, 26), icon_anchor=(11, 11),
+    folium.map.Marker(edge_midpoint(G, e), tooltip=label, icon=folium.DivIcon(icon_size=(220, 26), icon_anchor=(11, 34),
         html=("<div style='display:flex;align-items:center;gap:6px'>"
               "<span style='display:inline-grid;place-items:center;width:20px;height:20px;border:2px solid #A63429;"
               "border-radius:50%;background:#FBFBF8;color:#A63429;font-weight:800;font-size:13px'>!</span>"
@@ -159,7 +159,7 @@ def add_legend(m: folium.Map, items: list, caption: str = "Fictional layout · n
                    for style, lb in items)
     m.get_root().html.add_child(folium.Element(
         "<div style='position:absolute;left:12px;bottom:12px;z-index:9999;background:rgba(249,249,244,.95);"
-        "border:1px solid #D8DDD0;padding:8px 10px;font:12px Segoe UI,Arial,sans-serif;color:#3F4A36;max-width:90%'>"
+        "border:1px solid #D8DDD0;padding:8px 10px;font:13px Segoe UI,Arial,sans-serif;color:#2F382A;max-width:90%'>"
         + rows + "<div style='margin-top:4px;color:#586151'>" + html.escape(caption) + "</div></div>"))
 
 

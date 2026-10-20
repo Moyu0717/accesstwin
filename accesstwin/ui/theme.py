@@ -55,7 +55,8 @@ def css() -> str:
 <style>
 :root {{{root};--font:{FONT_STACK}}}
 html, body, [data-testid="stAppViewContainer"], [data-testid="stApp"] {{background:var(--surface-page);color:var(--text-primary);font-family:var(--font)}}
-[data-testid="stAppViewContainer"] * {{font-family:var(--font)}}
+/* Text uses the system stack; Material icon glyphs keep their own font (no raw ligature names). */
+[data-testid="stAppViewContainer"] *:not([data-testid="stIconMaterial"]):not([class*="material-symbols"]) {{font-family:var(--font)}}
 /* Chrome: our own project bar replaces the default header and page list. */
 header[data-testid="stHeader"] {{background:transparent;height:0;min-height:0}}
 [data-testid="stSidebarNav"], [data-testid="stSidebarNavSeparator"] {{display:none}}
@@ -114,7 +115,13 @@ table.at-cmp {{width:100%;border-collapse:collapse;font-size:14px;font-variant-n
 table.at-cmp th {{text-align:left;font-size:12px;letter-spacing:.6px;color:var(--text-secondary);font-weight:600;padding:10px 8px;border-bottom:1px solid #CBD1C0}}
 table.at-cmp td {{padding:11px 8px;border-bottom:1px solid #E4E7DB}}
 table.at-cmp td.sc {{color:var(--accent-strong);background:#F6F0E6}}
-.at-cmp-wrap {{overflow-x:auto}}
+.at-cmp-wrap {{overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch}}
+.at-h2 {{font-size:24px;font-weight:400;letter-spacing:-.5px;line-height:1.2;margin:2px 0 6px;color:var(--text-primary)}}
+.at-mobile-only, .st-key-ws_mobile_action {{display:none}}
+/* Secondary navigation links look like outlined buttons (stage tabs in the project bar stay plain). */
+[data-testid="stMain"] [data-testid="stPageLink"] a {{border:1px solid var(--border-default);background:var(--surface-panel);padding:0 12px}}
+[data-testid="stHorizontalBlock"]:has(.at-tabs) [data-testid="stPageLink"] a {{border:none;background:transparent}}
+[data-testid="stHorizontalBlock"]:has(.at-tabs) [data-testid="stColumn"] > div {{justify-content:center}}
 /* Legacy cards keep working, restyled with hairlines */
 .at-card {{border:1px solid var(--border-default);border-radius:2px;padding:14px 16px;background:var(--surface-panel);margin-bottom:10px}}
 .at-bad {{border-left:3px solid var(--state-blocked)}} .at-good {{border-left:3px solid var(--state-verified)}}
@@ -124,10 +131,20 @@ table.at-cmp td.sc {{color:var(--accent-strong);background:#F6F0E6}}
 @media (max-width: 850px) {{
   [data-testid="stHorizontalBlock"] {{flex-wrap:wrap}}
   [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {{min-width:100% !important;flex:1 1 100% !important}}
-  [data-testid="stColumn"]:has(.at-ws-inspector) {{order:-2}}
-  [data-testid="stColumn"]:has(.at-ws-map) {{order:-1}}
+  [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] .at-tabs) > [data-testid="stColumn"]
+    {{min-width:0 !important;flex:1 1 0 !important}}
+  /* phone order: compact summary + action (inside the map column) → map → Inspector details → list */
+  [data-testid="stColumn"]:has(.at-ws-map) {{order:-2}}
+  [data-testid="stColumn"]:has(.at-ws-inspector) {{order:-1}}
+  [data-testid="stColumn"]:has(.at-ws-score) {{order:-3}}
+  .at-mobile-only, .st-key-ws_mobile_action {{display:block}}
+  .st-key-ws_top_action {{display:none}}
+  [data-testid="stColumn"]:has(.at-brand) {{display:none}}
+  table.at-cmp {{min-width:620px}}
   .at-title {{font-size:26px}} .at-score {{font-size:44px}}
-  .at-bar {{gap:10px}} .at-project .at-tag {{display:none}}
+  .at-bar {{gap:10px}} .at-project, .at-brand-text {{display:none}}
+  [data-testid="stPageLink"] a {{justify-content:center;padding:0 2px}} [data-testid="stPageLink"] p {{font-size:13px}}
+  [data-testid="stPopover"] button {{padding:0 6px}} [data-testid="stPopover"] button p {{white-space:nowrap;font-size:14px}}
 }}
 </style>
 """

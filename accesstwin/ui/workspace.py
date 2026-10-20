@@ -96,7 +96,8 @@ def _condition(e: dict) -> tuple[str, str, str, str]:
                 "raised step — a level change interrupts the direct connection.")
     if e.get("status") == "unverified":
         return ("inspection", f"{float(e.get('width_cm', 0)) / 100:.2f}", "m",
-                "recorded width — this synthetic record awaits on-site confirmation. Current access is not verified.")
+                "recorded width · On-site measurement pending — this synthetic record is not a site measurement. "
+                "Current access is not verified.")
     if e.get("surface") in ("broken", "gravel"):
         return "barrier", e["surface"].capitalize(), "", "surface recorded as unsuitable for some profiles."
     if float(e.get("max_slope_pct") or 0) > 8:
@@ -152,26 +153,24 @@ def find_location(overlay_key: str, edge_id: str | None) -> Location | None:
 # ---------------------------------------------------------------- chrome
 
 def project_bar(stage: str) -> None:
-    """Brand · project · stage tabs (Network / Compare / Deliver) · More."""
-    c_brand, c_tabs, c_more = st.columns([2.2, 3, 1.4], vertical_alignment="center")
-    with c_brand:
+    """Brand · project · stage tabs (Network / Compare / Deliver) · More — one row, also on phones."""
+    cols = st.columns([2.2, 1, 1, 1, 1.1], vertical_alignment="center")
+    with cols[0]:
         st.markdown(
-            f"<div class='at-bar' style='border:none;padding:0;min-height:48px'>"
-            f"<span class='at-brand'>{LOGO}AccessTwin</span>"
+            f"<div class='at-tabs' style='display:flex;align-items:center;gap:14px;min-height:48px'>"
+            f"<span class='at-brand'>{LOGO}<span class='at-brand-text'>AccessTwin</span></span>"
             f"<span class='at-project'>Demo Township <span class='at-tag'>Study 01</span></span></div>",
             unsafe_allow_html=True)
-    with c_tabs:
-        cols = st.columns(3)
-        for col, (key, page) in zip(cols, STAGES):
-            label = t(f"stage_{key}")
-            with col:
-                if key == stage:
-                    st.markdown(f"<div style='min-height:44px;display:flex;align-items:center;justify-content:center;"
-                                f"font-weight:600;border-bottom:2px solid #333B30'>{esc(label)}</div>",
-                                unsafe_allow_html=True)
-                else:
-                    _page_link(page, label)
-    with c_more:
+    for col, (key, page) in zip(cols[1:4], STAGES):
+        label = t(f"stage_{key}")
+        with col:
+            if key == stage:
+                st.markdown(f"<div style='min-height:44px;display:flex;align-items:center;justify-content:center;"
+                            f"font-weight:600;border-bottom:2px solid #333B30'>{esc(label)}</div>",
+                            unsafe_allow_html=True)
+            else:
+                _page_link(page, label)
+    with cols[4]:
         with st.popover(t("more"), use_container_width=True):
             for page, key in MORE_PAGES:
                 _page_link(page, t(key))
@@ -224,7 +223,7 @@ def step_section_svg(curb_cm: float, ramp: bool) -> str:
             f"<path d='M120 40 L250 40 L250 70 L120 70 Z' fill='#EEEFE7' opacity='.6'/>"
             f"<line x1='135' y1='42' x2='135' y2='68' stroke='#A63429' stroke-width='1.5'/>"
             f"<text x='142' y='60' font-size='12' fill='#A63429'>{curb_cm * 10:g} mm</text>"
-            f"<text x='10' y='90' font-size='11' fill='#586151' letter-spacing='.6'>DIAGRAMMATIC · NOT TO SCALE</text></svg>")
+            f"<text x='10' y='90' font-size='12' fill='#586151' letter-spacing='.6'>DIAGRAMMATIC · NOT TO SCALE</text></svg>")
 
 
 # ---------------------------------------------------------------- compare / deliver snapshot

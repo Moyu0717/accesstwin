@@ -113,7 +113,7 @@ def _bundle_html(bundle) -> str:
     d = bundle.delta
     by = ", ".join(f"{_e(k.replace('_', ' '))} {v:.0f}" for k, v in d.beneficiaries_by_persona.items())
     return (f"<h2>Recommended package: {_e(' + '.join(bundle.upgrade_ids))}</h2>"
-            f"<p>Within a budget of {bundle.budget:g} cost-weight units (uses {bundle.cost_weight:g}). Township index "
+            f"<p>Within a budget of {bundle.budget:g} cost-weight units (uses {bundle.cost_weight:g}). Access Score "
             f"{d.index_before:.1f} → {d.index_after:.1f} ({d.index_delta:+.1f}); {len(d.newly_reachable)} new trips; "
             f"≈{d.beneficiaries:.0f} residents who need extra mobility support benefit ({by}).</p>"
             f"<p class='ex'>{_e(bundle.explanation)} <i>Requires on-site verification after completion.</i></p>")

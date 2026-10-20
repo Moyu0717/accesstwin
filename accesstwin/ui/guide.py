@@ -33,7 +33,7 @@ STOPS: list[Stop] = [
          "Block A → Clinic: the direct route is blocked for a wheelchair at E7; the detour is about 2.4× longer.",
          "Optional: switch the sidebar profile to Older adult to see the direct route work. Then press Next.",
          {"persona": "wheelchair", "persona_select": "wheelchair", "ro_src": "Use a sample photo",
-          "ro_sample": "curb_high_step.png", "ro_edge": "E7"}),
+          "ro_sample": "curb_kerb_edge_01.jpg", "ro_edge": "E7"}),
     Stop("pages/2_📸_Report_Obstacle.py", 3, "Evidence: a resident reports it",
          "The sample kerb photo is classified as a high curb that needs on-site measurement.",
          "Press **Submit report**, then Next."),

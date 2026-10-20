@@ -110,7 +110,10 @@ def main() -> None:
         st.caption(f"Chart summary: {_top['id']} ({_top['cost_tier']} cost) ranks first with priority score {_top['roi']:.1f}; "
                    f"{int((df['roi'] == 0).sum())} of {len(df)} candidates show no measurable access gain.")
         st.dataframe(df[["rank", "id", "title", "cost_tier", "delta_index", "new_reachable_pairs", "beneficiaries",
-                         "avg_detour_reduction_m", "benefit", "roi"]], hide_index=True, width="stretch")
+                         "avg_detour_reduction_m", "benefit", "roi"]], hide_index=True, width="stretch",
+                     column_config={"roi": st.column_config.NumberColumn("upgrade priority score"),
+                                    "new_reachable_pairs": st.column_config.NumberColumn("newly reachable (modelled)"),
+                                    "beneficiaries": st.column_config.NumberColumn("estimated residents (model)")})
         with st.expander("Top 5 — plain-language explanations", expanded=False):
             for _, row in df.head(5).iterrows():
                 st.markdown(f"**#{row['rank']} {row['id']}** — {row['explanation']}  \n_{t('onsite')}_")

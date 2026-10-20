@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import ast
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -29,7 +30,8 @@ from accesstwin.ui import cached
 from accesstwin.ui import components as ui
 from accesstwin.ui import guide
 from accesstwin.ui.i18n import LABELS, t
-from accesstwin.ui.map_view import STATUS_COLOURS, map_html
+from accesstwin.ui import theme
+from accesstwin.ui.map_view import IMPASSABLE_DASH, STATUS_COLOURS, STATUS_DASH, map_html
 
 ROOT = Path(__file__).resolve().parent.parent
 PAGES = {p.name.split("_")[0]: str(p) for p in (ROOT / "pages").glob("*.py")}
@@ -71,26 +73,30 @@ def _expected_gap_index() -> float:
 
 
 def test_overview_and_dashboard_show_the_same_gap_index():
+    # V2 rename: "Gap Index" is now "Access Score" (higher is better). The Network page draws the score in HTML
+    # (workspace.score_block) with one decimal; the Dashboard metric uses zero decimals.
     store.reset_demo()
     expected = _expected_gap_index()
 
     overview = _page("0")
-    overview_value = _metric(overview, "Gap Index").value
-    assert int(overview_value.split("/")[0]) == expected
+    overview_html = "\n".join(m.value for m in overview.markdown)
+    shown = re.findall(r"class='at-score'>(\d+\.\d)<small> /100", overview_html)
+    assert shown, "Access Score block not found on the Network page"
+    assert round(float(shown[0])) == expected
 
     dash = _page("6")
-    dash_value = _metric(dash, "Gap Index").value
+    dash_value = _metric(dash, "Access Score").value
     assert int(dash_value.split("/")[0]) == expected
-    assert dash_value == overview_value
+    assert round(float(shown[0])) == int(dash_value.split("/")[0])
 
 
 def test_simulator_before_index_matches_gap_index():
     store.reset_demo()
     full = compute_scores(load_graph(), load_personas()).index
     sim = _page("5")
-    # The bundle card's "Package: township index" shows "+x (from before)"; the scenario card shows "+x".
-    bundle_m = next(m for m in sim.metric if m.label == "Package: township index")
-    scenario_m = next(m for m in sim.metric if m.label == "Township index")
+    # The bundle card's "Package: Access Score" shows "+x (from before)"; the scenario card shows "+x".
+    bundle_m = next(m for m in sim.metric if m.label == "Package: Access Score")
+    scenario_m = next(m for m in sim.metric if m.label == "Access Score")
     assert "(from" in bundle_m.delta
     bundle_before = float(bundle_m.delta.split("(from ")[1].rstrip(")"))
     assert round(bundle_before) == round(full) == _expected_gap_index()
@@ -115,15 +121,23 @@ def test_report_page_has_an_analyse_button_per_sample_photo():
     keys = {b.key: b for b in at.button}
     names = _sample_names()
     assert names, "bundled sample photos are missing"
-    for name in names:
+    credits = ui.photo_credits()
+    gallery = [n for n in names if n in credits] or names  # credited photos replace placeholders in the gallery
+    for name in gallery:
         assert f"ro_pick_{name}" in keys, name
         assert keys[f"ro_pick_{name}"].label == "Analyse"
+    # every gallery photo that is third-party carries its source in the caption
+    for name in gallery:
+        if name in credits:
+            assert credits[name]["source"] in ui.photo_caption(name)
 
 
 def test_clicking_blocked_ramp_sample_shows_suggestion():
     store.reset_demo()
     at = _page("2")
-    at.button(key="ro_pick_ramp_blocked_car.png").click().run()
+    credits = ui.photo_credits()
+    key = "ramp_blocked_car_02.jpg" if "ramp_blocked_car_02.jpg" in credits else "ramp_blocked_car.png"
+    at.button(key=f"ro_pick_{key}").click().run()
     assert not at.exception
     assert any("Suggested type: blocked ramp" in m.value for m in at.markdown)
 
@@ -333,7 +347,7 @@ def test_dashboard_design_mode_runs_pre_construction_review():
     at.radio(key="dash_mode").set_value("design").run()
     assert not at.exception
     assert any("Pre-construction review: import a draft walkway network" in s.value for s in at.subheader)
-    assert "Draft Gap Index" in [m.label for m in at.metric]
+    assert "Draft Access Score" in [m.label for m in at.metric]
 
 
 # ---------- 7. language ----------
@@ -372,7 +386,9 @@ def test_guided_demo_has_seven_stops_covering_script_steps_in_order():
     assert steps == sorted(steps)
     assert set(steps) == {1, 2, 3, 4, 5}
     assert steps[0] == 1 and steps[-1] == 5
-    assert guide.STOPS[-1].page == "pages/6_📊_Planner_Dashboard.py"
+    # V2 flow: the tour ends on the Deliver stage (study brief), after Compare.
+    assert guide.STOPS[-1].page == "pages/9_Deliver.py"
+    assert guide.STOPS[-2].page == "pages/8_Compare.py"
 
 
 def test_guided_demo_start_and_exit_on_overview():
@@ -390,9 +406,27 @@ def test_guided_demo_start_and_exit_on_overview():
 
 # ---------- 9. accessibility ----------
 
-def test_status_colours_are_okabe_ito():
-    assert STATUS_COLOURS["verified_accessible"] == "#0072B2"
-    assert STATUS_COLOURS["blocked"] == "#D55E00"
+def test_status_colours_are_v2_tokens_with_non_colour_cues():
+    # Colours come from the V2 tokens (theme.TOKENS), not the old Okabe-Ito palette.
+    assert STATUS_COLOURS["blocked"] == theme.TOKENS["state-blocked"]
+    assert STATUS_COLOURS["unverified"] == theme.TOKENS["state-unknown"]
+    assert STATUS_COLOURS["verified_accessible"] == theme.TOKENS["network-line"]
+    # Distinct statuses use distinct colours.
+    assert len(set(STATUS_COLOURS.values())) == len(STATUS_COLOURS)
+    # Status is never colour alone: unverified is dashed, impassable-for-profile is dotted, blocked has a glyph.
+    assert STATUS_DASH["unverified"] == "6 8"
+    assert STATUS_DASH["verified_accessible"] is None and STATUS_DASH["blocked"] is None
+    assert IMPASSABLE_DASH == "2 6"
+    base = map_html(json.dumps({}))
+    assert f'"dashArray": "{STATUS_DASH["unverified"]}"' in base
+    # E7 (verified, step 15 cm) is impassable for a wheelchair user: drawn dotted in the impassable colour.
+    wheel = map_html(json.dumps({}), persona_key="wheelchair")
+    assert f'"dashArray": "{IMPASSABLE_DASH}"' in wheel
+    assert f'"dashArray": "{IMPASSABLE_DASH}"' not in base
+    # Blocked segment keeps its ✖ glyph and label in the rendered map.
+    blocked = map_html(json.dumps({"E20": {"status": "blocked"}}))
+    # folium JSON-escapes the glyph inside the script tag (literal backslash-u sequence).
+    assert "E20: blocked" in blocked and ("✖" in blocked or "\\u2716" in blocked)
 
 
 def test_blocked_segment_gets_a_non_colour_marker_in_map_html():
@@ -425,11 +459,13 @@ def _app_nav_list() -> list[ast.Tuple]:
     raise AssertionError("NAV list not found in app.py")
 
 
-def test_app_registers_eight_pages_with_overview_first():
+def test_app_registers_ten_pages_with_network_first_and_hidden_nav():
     src = (ROOT / "app.py").read_text(encoding="utf-8")
     assert "st.navigation(" in src and "st.Page(" in src
+    assert 'position="hidden"' in src  # V2 project bar replaces the default page list
     nav = _app_nav_list()
-    assert len(nav) == 8
-    assert nav[0].elts[1].value == "nav_overview"
+    assert len(nav) == 10
+    assert nav[0].elts[1].value == "stage_network"
+    assert [e.elts[1].value for e in nav[1:3]] == ["stage_compare", "stage_deliver"]
     for entry in nav:
         assert (ROOT / entry.elts[0].value).exists(), entry.elts[0].value
