@@ -49,7 +49,7 @@ INDEX = """<!doctype html>
 <body>
   <div id="at-loading">
     <h1>♿ AccessTwin</h1>
-    <p><b>Loading AccessTwin in your browser… first load ~20 s.</b></p>
+    <p><b>Loading AccessTwin in your browser… first load about 30 s (up to a minute on slow networks).</b></p>
     <p>Python is starting inside this page (no server). Demo mode: the photo AI uses the demo classifier and
        footfall shows the bundled sample results. Later visits are faster.</p>
   </div>

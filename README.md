@@ -14,14 +14,17 @@ reviews draft masterplans before anything is built. Built for the Sime Darby Pro
 ## Pages
 | Page | What it shows |
 |---|---|
-| Home | Accessibility Gap Index (0–100) per persona, overview map, top 3 critical gaps |
+| 🏠 Overview | Accessibility Gap Index (0–100, higher is better) per persona, overview map, top 3 critical gaps, **▶ Guided demo (3 min)** |
 | 🧭 Route Planner | Same trip, different personas; reason card names the blocking segment; detour and shade |
-| 📸 Report Obstacle | Photo → AI suggestion (Groq vision, or the demo classifier without a key) → pending report |
+| 📸 Report Obstacle | One-click sample-photo gallery or your own photo → AI suggestion (Groq vision, or the demo classifier without a key) → editable category → pending report |
 | ✅ Verification Queue | Guard/admin approves or rejects; on-site verification of unverified segments |
 | 🎥 Footfall Analytics | Anonymous CCTV counts (bundled sample results on the cloud), accuracy panel |
-| 🏗️ Upgrade Simulator | What-if scenarios, before/after maps, ROI ranking by cost tier, work orders |
-| 📊 Planner Dashboard | Gap heatmap, footfall heat layer, suppressed demand, Planning Brief (HTML/CSV) download |
+| 🏗️ Upgrade Simulator | Recommended low-cost package, what-if scenarios, before/after map, ROI ranking by cost tier, work orders |
+| 📊 Planner Dashboard | Gap heatmap, footfall heat layer, suppressed demand, work-order board (fix → verify on site), evidence & validation panel, draft-network CSV import (Design mode), Planning Brief (HTML/CSV) download |
+| ℹ️ About | Problem, how it works, who benefits, pilot plan, business model, privacy, limitations, accessibility of this app |
 
+
+Languages: English, Bahasa Malaysia and 中文 (sidebar; BM and 中文 are machine-drafted and pending proofreading). Map colours are colour-blind safe and every status also has a line-style cue.
 
 ## Run locally
 Windows / PowerShell:

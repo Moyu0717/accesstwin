@@ -34,3 +34,4 @@ CODEX_HANDOFF.md
 dist/
 scripts/build_hf_space.py
 _site/
+image/
