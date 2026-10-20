@@ -172,3 +172,29 @@ def page_link(page: str, label: str, icon: str | None = None) -> None:
         st.page_link(page, label=label, icon=icon)
     except Exception:  # StreamlitPageNotFoundError
         st.caption(f"{icon or ''} {label} (open it from the sidebar)")
+
+
+def bundle_card(b, key_prefix: str = "bundle", allow_apply: bool = False) -> None:
+    """Headline "what should we fund first?" card for a simulation.Bundle (P1-2)."""
+    if b is None:
+        st.info("No low-cost package improves access with the current data.")
+        return
+    d = b.delta
+    with st.container(border=True):
+        st.markdown(f"#### 📦 Recommended package: {' + '.join(b.upgrade_ids)}")
+        st.caption(f"Greedy by priority score within a budget of {b.budget:g} cost-weight units "
+                   f"(low 1 · medium 2.5 · high 5); this package uses {b.cost_weight:g}. Relative tiers only — no RM costs.")
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric("Township index", f"{d.index_after:.1f}", f"{d.index_delta:+.1f} (from {d.index_before:.1f})")
+        m2.metric("New trips", len(d.newly_reachable), help="Resident–persona–destination trips that become practical")
+        m3.metric("Est. beneficiaries", f"{d.beneficiaries:.0f}", help="population × vulnerable share (model estimate)")
+        m4.metric("Wheelchair index", f"{d.persona_after.get('wheelchair', 0):.0f}",
+                  f"{d.persona_delta().get('wheelchair', 0):+.1f}")
+        st.caption("Estimated beneficiaries by persona: " + ", ".join(
+            f"{persona_short(k)} {v:.0f}" for k, v in d.beneficiaries_by_persona.items()))
+        st.markdown(b.explanation)
+        st.caption("⚠️ Requires on-site verification after completion. Model estimate on fictional demo data.")
+        if allow_apply and st.button("Load this package into the scenario", key=f"{key_prefix}_apply"):
+            st.session_state["sim_selected"] = list(b.upgrade_ids)
+            st.session_state["sim_multiselect"] = list(b.upgrade_ids)
+            st.rerun()

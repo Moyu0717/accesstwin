@@ -82,6 +82,7 @@ class Delta:
     improved_pairs: int = 0
     beneficiaries: float = 0.0
     beneficiary_nodes: list[str] = field(default_factory=list)
+    beneficiaries_by_persona: dict[str, float] = field(default_factory=dict)
     avg_detour_reduction_m: float = 0.0
     reductions: list[dict] = field(default_factory=list)
     explanation: str = ""
@@ -123,11 +124,16 @@ def compare(
     # Assumption: a node's vulnerable residents are spread evenly over the 4 personas.
     n_personas = len(personas) or 1
     beneficiaries = sum(vulnerable_population(G2, r) * len(ps) / n_personas for r, ps in gaining_personas.items())
+    by_persona = {k: 0.0 for k in personas}
+    for r, ps in gaining_personas.items():
+        for pk in ps:
+            by_persona[pk] += vulnerable_population(G2, r) / n_personas
     avg_red = sum(x["before"] - x["after"] for x in reductions) / len(reductions) if reductions else 0.0
     d = Delta(
         index_before=before.index, index_after=after.index,
         persona_before=before.persona_index, persona_after=after.persona_index,
         newly_reachable=newly, improved_pairs=improved, beneficiaries=beneficiaries,
+        beneficiaries_by_persona=by_persona,
         beneficiary_nodes=sorted(gainers), avg_detour_reduction_m=avg_red, reductions=reductions,
     )
     d.explanation = explain(G2, d, personas, reductions)
@@ -210,3 +216,40 @@ def rank_upgrades(
 
 def edge_exists(G: nx.MultiGraph, upgrade: dict) -> bool:
     return bool(upgrade.get("new_edge")) or find_edge(G, upgrade["edge_id"]) is not None
+
+
+DEFAULT_BUNDLE_BUDGET = 5.0  # cost-weight units: low 1, medium 2.5, high 5
+
+
+@dataclass
+class Bundle:
+    upgrade_ids: list[str]
+    cost_weight: float
+    budget: float
+    delta: Delta
+    explanation: str
+
+
+def recommend_bundle(
+    G: nx.MultiGraph, upgrades: list[dict], personas: dict[str, Persona], mode: str = "operate",
+    budget: float = DEFAULT_BUNDLE_BUDGET, ranking: pd.DataFrame | None = None,
+) -> Bundle | None:
+    """Greedy "what should we fund first?": take upgrades by ROI (only those with a measurable gain) while the
+    summed cost weight stays within `budget`, then simulate the bundle together (combined effects count once)."""
+    ranking = ranking if ranking is not None else rank_upgrades(G, upgrades, personas, mode=mode)
+    if ranking.empty:
+        return None
+    chosen, spent = [], 0.0
+    for _, row in ranking.iterrows():
+        if row["benefit"] <= 0:
+            continue
+        if spent + row["cost_weight"] <= budget + 1e-9:
+            chosen.append(row["id"])
+            spent += row["cost_weight"]
+    if not chosen:
+        return None
+    by_id = {u["id"]: u for u in upgrades}
+    G2 = apply_upgrades(G, [by_id[i] for i in chosen])
+    d = compare(G, G2, personas)
+    title = f"Recommended package ({' + '.join(chosen)})"
+    return Bundle(chosen, spent, budget, d, explain(G2, d, personas, d.reductions, title))

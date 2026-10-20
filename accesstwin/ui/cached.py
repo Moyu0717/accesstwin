@@ -46,7 +46,7 @@ def demand(overlay_key: str, counts_key: str):
 def brief_html(overlay_key: str, counts_key: str, mode: str, reports_key: str) -> str:
     G = _graph(overlay_key)
     return report.brief_html(G, load_personas(), scores(overlay_key), ranking(overlay_key, mode),
-                             demand(overlay_key, counts_key), store.list_reports(), mode)
+                             demand(overlay_key, counts_key), store.list_reports(), mode, bundle(overlay_key, mode))
 
 
 @st.cache_data(max_entries=64, show_spinner="Simulating…")
@@ -62,3 +62,12 @@ def scenario(overlay_key: str, upgrade_ids: tuple[str, ...]):
     d = compare(G, G2, P, before=scores(overlay_key))
     title = chosen[0]["title"] if len(chosen) == 1 else f"Combined scenario ({', '.join(upgrade_ids)})"
     return d, explain(G2, d, P, d.reductions, title)
+
+
+@st.cache_data(max_entries=16, show_spinner="Choosing the best low-cost package…")
+def bundle(overlay_key: str, mode: str):
+    """Recommended low-cost package (P1-2), or None."""
+    from accesstwin.core.simulation import recommend_bundle
+
+    return recommend_bundle(_graph(overlay_key), load_upgrades(), load_personas(), mode=mode,
+                            ranking=ranking(overlay_key, mode))

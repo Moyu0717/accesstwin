@@ -35,7 +35,7 @@ def report_stats(reports: list[dict]) -> dict:
 
 def brief_html(
     G: nx.MultiGraph, personas: dict[str, Persona], scores: ScoreResult, ranking: pd.DataFrame,
-    demand: list[EdgeDemand], reports: list[dict], mode: str = "operate",
+    demand: list[EdgeDemand], reports: list[dict], mode: str = "operate", bundle=None,
 ) -> str:
     stats = report_stats(reports)
     title = "Pre-construction Accessibility Review" if mode == "design" else "Accessibility Planning Brief"
@@ -78,6 +78,7 @@ th{{background:#F0F7F6}} .big{{font-size:44px;font-weight:700;color:#0F766E}} .m
 <table><tr><th>Persona</th><th>Index</th></tr>{persona_rows}</table>
 <h3>Gap matrix (residential × persona, 0–100)</h3>
 <table><tr><th>Residential</th>{gap_head}</tr>{gap_rows}</table>
+{_bundle_html(bundle)}
 <h2>Top 5 recommended upgrades (ROI = benefit ÷ cost tier)</h2>
 <table><tr><th>Rank</th><th>Upgrade</th><th>Cost tier</th><th>Δ index</th><th>New trips</th><th>Beneficiaries</th><th>ROI</th></tr>{up_rows}</table>
 <h2>Suppressed-demand segments</h2>
@@ -88,6 +89,18 @@ th{{background:#F0F7F6}} .big{{font-size:44px;font-weight:700;color:#0F766E}} .m
 <div class="disc"><b>Disclaimer.</b> {_e(DISCLAIMER)}</div>
 <p class="muted">Print this page to PDF from your browser (Ctrl+P) to share it.</p>
 </body></html>"""
+
+
+def _bundle_html(bundle) -> str:
+    if bundle is None:
+        return ""
+    d = bundle.delta
+    by = ", ".join(f"{_e(k.replace('_', ' '))} {v:.0f}" for k, v in d.beneficiaries_by_persona.items())
+    return (f"<h2>Recommended package: {_e(' + '.join(bundle.upgrade_ids))}</h2>"
+            f"<p>Within a budget of {bundle.budget:g} cost-weight units (uses {bundle.cost_weight:g}). Township index "
+            f"{d.index_before:.1f} → {d.index_after:.1f} ({d.index_delta:+.1f}); {len(d.newly_reachable)} new trips; "
+            f"≈{d.beneficiaries:.0f} residents who need extra mobility support benefit ({by}).</p>"
+            f"<p class='ex'>{_e(bundle.explanation)} <i>Requires on-site verification after completion.</i></p>")
 
 
 def ranking_csv(ranking: pd.DataFrame) -> str:

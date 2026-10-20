@@ -84,6 +84,8 @@ def main() -> None:
         st.caption("Gravity model: expected ∝ population × importance ÷ distance^1.5, scaled to total observed. "
                    "Segments without a camera show 'No CCTV coverage' and are never inferred.")
 
+    ui.bundle_card(cached.bundle(okey, mode), "dash_bundle")
+
     st.subheader("🔥 Gap heatmap (residential × persona)")
     gm = scores.gap_matrix(G)
     gm.columns = [ui.persona_short(c) for c in gm.columns]

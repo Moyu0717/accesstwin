@@ -91,6 +91,7 @@ def main() -> None:
                "Simulated upgrades are assumed passable once built. " + t("onsite"))
 
     by_id = {u["id"]: u for u in available_upgrades(upgrades, mode)}
+    ui.bundle_card(cached.bundle(ui.overlay_key(), mode), "sim_bundle", allow_apply=True)
     scenario_panel(persona, mode)
 
     st.divider()
