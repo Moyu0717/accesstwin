@@ -8,6 +8,7 @@ from accesstwin.core.graph import node_name
 from accesstwin.core.simulation import available_upgrades, load_upgrades
 from accesstwin.ui import cached
 from accesstwin.ui import components as ui
+from accesstwin.ui import guide
 from accesstwin.ui.i18n import t
 from accesstwin.ui.map_view import LEGEND_MD, show_map
 
@@ -76,6 +77,8 @@ def main() -> None:
     upgrades = load_upgrades()
 
     st.title(f"🏗️ {t('sim_title')}")
+
+    guide.panel("pages/5_🏗️_Upgrade_Simulator.py")
     mode = st.radio("Mode", ["operate", "design"], horizontal=True,
                     index=["operate", "design"].index(st.session_state.get("mode", "operate")),
                     format_func=lambda m: "Operate (existing township)" if m == "operate" else "Design (pre-construction review)",

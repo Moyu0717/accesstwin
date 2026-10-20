@@ -10,6 +10,7 @@ from accesstwin.core.demand import demand_frame
 from accesstwin.core.graph import find_edge, node_name
 from accesstwin.ui import cached
 from accesstwin.ui import components as ui
+from accesstwin.ui import guide
 from accesstwin.ui.map_view import show_map
 
 
@@ -31,6 +32,9 @@ def main() -> None:
 
 
     st.title("📊 Planner Dashboard")
+
+
+    guide.panel("pages/6_📊_Planner_Dashboard.py")
     mode = st.radio("Mode", ["operate", "design"], horizontal=True,
                     index=["operate", "design"].index(st.session_state.get("mode", "operate")),
                     format_func=lambda m: "Operate (existing township)" if m == "operate" else "Design (pre-construction review)",

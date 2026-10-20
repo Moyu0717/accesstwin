@@ -9,6 +9,7 @@ from accesstwin.core import store
 from accesstwin.core.graph import iter_edges, node_name
 from accesstwin.core.obstacles import OBSTACLE_TYPES, PERSONA_KEYS, SEVERITIES, analyze_photo
 from accesstwin.ui import components as ui
+from accesstwin.ui import guide
 from accesstwin.ui.i18n import t
 
 
@@ -18,6 +19,8 @@ def main() -> None:
     G = ui.graph()
 
     st.title(f"📸 {t('report_title')}")
+
+    guide.panel("pages/2_📸_Report_Obstacle.py")
     st.info(f"📷 {t('photo_notice')}")
     st.caption("The AI result is only a **suggestion pending review**. The map changes only after a guard or admin "
                "approves the report in the Verification Queue.")

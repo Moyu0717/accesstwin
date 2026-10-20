@@ -17,6 +17,7 @@ NAV = [
     ("pages/4_🎥_Footfall_Analytics.py", "Footfall Analytics", "🎥"),
     ("pages/5_🏗️_Upgrade_Simulator.py", "Upgrade Simulator", "🏗️"),
     ("pages/6_📊_Planner_Dashboard.py", "Planner Dashboard", "📊"),
+    ("pages/7_ℹ️_About.py", "About", "ℹ️"),
 ]
 _page = st.navigation([st.Page(path, title=title, icon=icon, default=(i == 0))
                        for i, (path, title, icon) in enumerate(NAV)])

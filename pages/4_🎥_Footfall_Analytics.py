@@ -10,6 +10,7 @@ from accesstwin.core.demand import demand_frame, suppressed_demand
 from accesstwin.core.footfall import camera_counts
 from accesstwin.core.graph import iter_edges
 from accesstwin.ui import components as ui
+from accesstwin.ui import guide
 from accesstwin.ui.i18n import t
 
 
@@ -32,6 +33,8 @@ def main() -> None:
     G = ui.graph()
 
     st.title("🎥 Footfall Analytics")
+
+    guide.panel("pages/4_🎥_Footfall_Analytics.py")
     st.info("Aggregate counts only: no frames or crops are stored, no face recognition is used, and any real "
             "deployment needs property-owner authorisation. " + t("pdpa"))
 

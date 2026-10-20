@@ -6,6 +6,7 @@ from accesstwin.core.graph import node_name
 from accesstwin.core.scoring import critical_gaps
 from accesstwin.ui import cached
 from accesstwin.ui import components as ui
+from accesstwin.ui import guide
 from accesstwin.ui.i18n import t
 from accesstwin.ui.map_view import LEGEND_MD, pending_key, show_map
 
@@ -19,6 +20,16 @@ def main() -> None:
     s = cached.scores(okey)
 
     st.title(f"♿ {t('app_title')} — {t('home_title')}")
+
+    guide.panel("pages/0_🏠_Overview.py")
+    if not guide.active():
+        g1, g2 = st.columns([1, 3])
+        if g1.button("▶ Guided demo (3 min)", key="guide_start", type="primary",
+                     help="A 5-step tour of the whole demo. Exit any time."):
+            guide.start()
+            st.rerun()
+        g2.caption("New here? The guided demo walks you through the problem, the evidence, the decision and the "
+                   "pre-construction review in about 3 minutes.")
     st.markdown(f"**{t('tagline')}**")
     st.caption(t("fictional"))
 

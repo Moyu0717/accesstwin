@@ -6,6 +6,7 @@ from accesstwin.core import store
 from accesstwin.core.graph import destination_nodes, node_name, residential_nodes
 from accesstwin.core.routing import route
 from accesstwin.ui import components as ui
+from accesstwin.ui import guide
 from accesstwin.ui.i18n import t
 from accesstwin.ui.map_view import LEGEND_MD, pending_key, show_map
 
@@ -84,6 +85,7 @@ def main() -> None:
     ui.setup_page(t("route_title"), "🧭")
     persona = ui.sidebar()
     st.title(f"🧭 {t('route_title')}")
+    guide.panel("pages/1_🧭_Route_Planner.py")
     st.caption("Same origin and destination, different reachability per persona. Dashed = unconstrained shortest route; "
                "solid = route this persona can actually use.")
     planner(persona)

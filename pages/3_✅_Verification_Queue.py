@@ -5,6 +5,7 @@ from accesstwin.core import store
 from accesstwin.core.graph import find_edge, iter_edges, load_graph, node_name
 from accesstwin.core.routing import route
 from accesstwin.ui import components as ui
+from accesstwin.ui import guide
 from accesstwin.ui.i18n import t
 
 
@@ -15,6 +16,8 @@ def main() -> None:
     P = ui.personas()
 
     st.title(f"✅ {t('queue_title')}")
+
+    guide.panel("pages/3_✅_Verification_Queue.py")
     st.caption("Human-in-the-loop: AI suggestions never change the map by themselves. Approving a report marks the "
                "segment **blocked** (stored as an overlay — the base map data is never modified).")
 
