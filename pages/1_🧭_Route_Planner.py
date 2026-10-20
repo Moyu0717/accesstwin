@@ -37,6 +37,7 @@ def planner(persona) -> None:
     res_nodes = residential_nodes(G)
     dest_nodes = destination_nodes(G)
     keys = list(ui.personas())
+    conclusion = st.container()  # conclusion first (2A-3); filled once the pickers below are read
     st.session_state["rp_persona"] = persona.key
     st.segmented_control(t("persona"), keys, key="rp_persona", format_func=ui.persona_short, on_change=_set_persona,
                          help=t("persona_assumption"))
@@ -67,8 +68,16 @@ def planner(persona) -> None:
     else:
         status, cls, body = (f"Route usable · {ui.fmt_m(r.length_m)}", "verified",
                              "A slightly different path is preferred (comfort penalties such as no shade or no tactile paving).")
-    st.markdown(f"<div class='at-section'><div class='at-status {cls}'>{ui.esc(status)}</div>"
-                f"<div class='at-muted' style='margin-top:4px'>{ui.esc(body)}</div></div>", unsafe_allow_html=True)
+    conclusion.markdown(f"<div class='at-route-head'><div class='at-eyebrow'>{ui.esc(who)} · {ui.esc(node_name(G, origin))} → "
+                        f"{ui.esc(node_name(G, dest))}</div><div class='at-status {cls}' style='font-size:20px;font-weight:600'>"
+                        f"{ui.esc(status)}</div><div style='margin-top:4px;font-size:15px'>{ui.esc(body)}</div></div>",
+                        unsafe_allow_html=True)
+    eid = _blocking_edge(r) or (r.edges[0] if r.edges else None)
+    if eid:
+        conclusion.button(f"Report an obstacle on this route ({eid})", key="rp_report", type="primary",
+                          on_click=_report_on, args=(eid,))
+        if st.session_state.get("guide_pending", {}).get("ro_edge") == eid:
+            conclusion.page_link("pages/2_📸_Report_Obstacle.py", label="Open the report form →")
     if r.reachable:
         facts = [("Distance", ui.fmt_m(r.length_m)), ("Reference path", ui.fmt_m(r.baseline_length_m)),
                  ("Covered (shade/rain)", f"{r.covered_ratio:.0%}"), ("Unverified segments", str(len(r.unverified_edges)))]
@@ -92,13 +101,6 @@ def planner(persona) -> None:
     if r.reachable:
         st.caption("Path: " + " → ".join(node_name(G, n) for n in r.path))
 
-    # ---- report action carrying the blocking segment
-    eid = _blocking_edge(r) or (r.edges[0] if r.edges else None)
-    if eid:
-        st.button(f"Report an obstacle on this route ({eid})", key="rp_report", type="primary",
-                  on_click=_report_on, args=(eid,))
-        if st.session_state.get("guide_pending", {}).get("ro_edge") == eid:
-            st.page_link("pages/2_📸_Report_Obstacle.py", label="Open the report form →")
 
     with st.expander("Compare all profiles for this trip"):
         rows = []
@@ -120,8 +122,7 @@ def main() -> None:
     persona = ui.sidebar()
     ui.page_head(t('route_title'), eyebrow="Resident · Plan a trip")
     guide.panel("pages/1_🧭_Route_Planner.py")
-    st.caption("Same origin and destination, different reachability per profile. Copper = shortest reference path; "
-               "teal dashed = route this profile can actually use.")
+    st.caption("Same origin and destination, different reachability per profile.")
     planner(persona)
     ui.disclaimer()
 

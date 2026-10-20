@@ -77,7 +77,7 @@ def base_map(
                    tiles="OpenStreetMap" if street else None, control_scale=street, scrollWheelZoom=False,
                    prefer_canvas=True)
     # Same bounds for every view of the scene: all nodes of the base network (Baseline and Scenario share them).
-    m.fit_bounds([[min(lats), min(lons)], [max(lats), max(lons)]], padding=(28, 28))
+    m.fit_bounds([[min(lats), min(lons)], [max(lats), max(lons)]], padding=(64, 40))
     if not street:
         m.get_root().header.add_child(folium.Element(
             "<style>.leaflet-container{background:" + MAP_BACKGROUND + " !important;font-family:'Segoe UI',Arial,sans-serif}</style>"))

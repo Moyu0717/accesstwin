@@ -100,27 +100,26 @@ def evidence_hero(loc, where: str = "") -> None:
 
 def evidence_details(loc) -> None:
     """2A-1 item 6: AI suggestion & review details, verification records, condition record source (no photos)."""
-    st.markdown(f"<div class='at-section'><div class='at-eyebrow'>{ws.esc(t('evidence_origin'))}</div></div>",
+    with st.expander(t("evidence_origin"), expanded=False):
+        for r in ws.edge_evidence(loc.edge_id):
+            ai = r.get("ai") or {}
+            src = ai.get("source", "mock")
+            badge = f"Groq · {ai.get('model', '')}" if src == "groq" else ("Seed record" if src == "seed" else "Demo classifier")
+            st.markdown(
+                f"<div class='at-kv'><b style='color:var(--text-primary)'>Report #{r['id']}</b>"
+                f"<span>{ws.esc(STATUS_LABEL[r['status']])}</span></div>"
+                f"<div class='at-muted'>{ws.esc(r['reporter_role'].capitalize())} · {ws.esc(r['created_at'][:10])}"
+                f"{' · ' + ws.esc(r['photo'].name) if r['photo'] else ' · no photo'}</div>"
+                f"<div class='at-muted'>AI suggestion ({ws.esc(badge)}): {ws.esc(ai.get('obstacle_type', '?').replace('_', ' '))}, "
+                f"{float(ai.get('confidence', 0)):.0%} · suggestion only, not a safety certification</div>",
                 unsafe_allow_html=True)
-    for r in ws.edge_evidence(loc.edge_id):
-        ai = r.get("ai") or {}
-        src = ai.get("source", "mock")
-        badge = f"Groq · {ai.get('model', '')}" if src == "groq" else ("Seed record" if src == "seed" else "Demo classifier")
-        st.markdown(
-            f"<div class='at-kv'><b style='color:var(--text-primary)'>Report #{r['id']}</b>"
-            f"<span>{ws.esc(STATUS_LABEL[r['status']])}</span></div>"
-            f"<div class='at-muted'>{ws.esc(r['reporter_role'].capitalize())} · {ws.esc(r['created_at'][:10])}"
-            f"{' · ' + ws.esc(r['photo'].name) if r['photo'] else ' · no photo'}</div>"
-            f"<div class='at-muted'>AI suggestion ({ws.esc(badge)}): {ws.esc(ai.get('obstacle_type', '?').replace('_', ' '))}, "
-            f"{float(ai.get('confidence', 0)):.0%} · suggestion only, not a safety certification</div>",
-            unsafe_allow_html=True)
-    vers = [v for v in store.list_verifications() if v["edge_id"] == loc.edge_id]
-    for v in vers[::-1]:
-        st.markdown(f"<div class='at-muted'>Verification · {ws.esc(v['verifier_role'])} · {ws.esc(v['created_at'][:10])} · "
-                    f"{ws.esc(v['result'].replace('_', ' '))}</div>", unsafe_allow_html=True)
-    for q in store.list_inspection_requests(loc.edge_id):
-        st.markdown(f"<div class='at-muted'>Site inspection requested · {ws.esc(q['created_at'][:10])} · pending</div>",
-                    unsafe_allow_html=True)
+        vers = [v for v in store.list_verifications() if v["edge_id"] == loc.edge_id]
+        for v in vers[::-1]:
+            st.markdown(f"<div class='at-muted'>Verification · {ws.esc(v['verifier_role'])} · {ws.esc(v['created_at'][:10])} · "
+                        f"{ws.esc(v['result'].replace('_', ' '))}</div>", unsafe_allow_html=True)
+        for q in store.list_inspection_requests(loc.edge_id):
+            st.markdown(f"<div class='at-muted'>Site inspection requested · {ws.esc(q['created_at'][:10])} · pending</div>",
+                        unsafe_allow_html=True)
     st.markdown("<div class='at-kv'><span>Condition record</span><span class='at-chip syn'>Synthetic survey data</span></div>",
                 unsafe_allow_html=True)
 
@@ -151,11 +150,11 @@ def route_details(G, r, persona, scenario: tuple) -> None:
 
 def baseline_inspector(loc, okey, persona, G) -> None:
     e = ws.find_edge(G, loc.edge_id)
-    if loc.kind == "barrier" and e.get("has_step"):
-        st.markdown(ws.step_section_svg(float(e.get("curb_height_cm", 0)), ramp=False), unsafe_allow_html=True)
+    svg = (ws.step_section_svg(float(e.get("curb_height_cm", 0)), ramp=False)
+           if loc.kind == "barrier" and e.get("has_step") else "")
     st.markdown(f"<div class='at-section'><div class='at-eyebrow'>{ws.esc(t('existing_condition'))}</div>"
                 f"<div class='at-big'>{ws.esc(loc.condition_value)} <small>{ws.esc(loc.condition_unit)}</small></div>"
-                f"<div class='at-muted'>{ws.esc(loc.condition_text)}</div></div>", unsafe_allow_html=True)
+                f"<div class='at-muted'>{ws.esc(loc.condition_text)}</div>{svg}</div>", unsafe_allow_html=True)
     if loc.kind == "inspection" or not (loc.origin and loc.dest):
         st.markdown(
             f"<div class='at-section'><div class='at-eyebrow'>{ws.esc(ui.persona_short(persona.key))} "
@@ -217,7 +216,9 @@ def scenario_inspector(loc, okey, scenario, G) -> None:
                   for k in d.persona_before)
     st.markdown(f"<div class='at-section'><div class='at-eyebrow'>{ws.esc(t('access_score'))} · modelled</div>"
                 f"<div class='at-big'>{d.index_before:.1f} → {d.index_after:.1f} <small>({d.index_delta:+.1f})</small></div>"
-                f"{per}</div>", unsafe_allow_html=True)
+                f"</div>", unsafe_allow_html=True)
+    with st.expander("Access Score by profile", expanded=False):
+        st.markdown(per, unsafe_allow_html=True)
     if d.newly_reachable:
         with st.expander(f"{t('newly_reachable')}: {len(d.newly_reachable)}", expanded=False):
             st.dataframe([{"home": node_name(G, x["residential"]), "profile": ui.persona_short(x["persona"]),
@@ -347,7 +348,7 @@ def main() -> None:
             f"{'ramp scenario' if scenario else 'existing conditions'}</div>", unsafe_allow_html=True)
         if scenario:
             with st.container(border=True, key="ws_sim_banner"):
-                b0, b1, b2 = st.columns([2.4, 1, 1], vertical_alignment="center")
+                b0, b1, b2 = st.columns([2.2, 1.35, 0.9], vertical_alignment="center")
                 b0.markdown(f"<div class='at-status sim'><b>SIMULATED</b> · {ws.esc(loc.upgrade['title'])} · not built — "
                             f"existing conditions unchanged</div>", unsafe_allow_html=True)
                 b1.button(f"↩ {t('return_baseline')}", key="ws_return_banner", on_click=_set_scenario, args=((),),

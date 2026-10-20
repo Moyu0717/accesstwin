@@ -331,8 +331,10 @@ def list_label(loc: Location, review: str) -> str:
 def list_sub(loc: Location, review: str) -> str:
     """Second line of a priority row (2A-2): condition · profiles · review state."""
     n = len(loc.affected)
-    prof = f"{n} profile{'s' if n != 1 else ''}" if loc.kind != "inspection" else "impact not assessed"
-    return f"{loc.short} · {prof} · {review.lower().replace('report pending review', 'report pending')}"
+    prof = f"{n} profile{'s' if n != 1 else ''}" if loc.kind != "inspection" else "not assessed"
+    rev = {"report pending review": "report pending", "no report yet": ""}.get(review.lower(), review.lower())
+    short = "unverified" if loc.short.lower().startswith("unverified") else loc.short
+    return " · ".join(x for x in (short, prof, rev) if x)
 
 
 @st.cache_data(max_entries=64, show_spinner=False)

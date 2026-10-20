@@ -35,8 +35,8 @@ def main() -> None:
     ui.page_head(t('footfall_title'), eyebrow="Evidence · Footfall")
 
     guide.panel("pages/4_🎥_Footfall_Analytics.py")
-    st.info("Aggregate counts only: no frames or crops are stored, no face recognition is used, and any real "
-            "deployment needs property-owner authorisation. " + t("pdpa"))
+    st.caption("Aggregate counts only: no frames or crops are stored, no face recognition is used, and any real "
+               "deployment needs property-owner authorisation.")
 
     pre = footfall.load_precomputed()
     sample = pre["sample_clip"]
@@ -96,8 +96,8 @@ def main() -> None:
         b = r["buckets"]
         xs = [f"{x['t_start_s']}-{x['t_start_s'] + footfall.BUCKET_S}s" for x in b]
         fig = go.Figure()
-        fig.add_bar(x=xs, y=[x["in"] for x in b], name="In", marker_color="#0F766E")
-        fig.add_bar(x=xs, y=[x["out"] for x in b], name="Out", marker_color="#B45309")
+        fig.add_bar(x=xs, y=[x["in"] for x in b], name="In", marker_color="#526E70")
+        fig.add_bar(x=xs, y=[x["out"] for x in b], name="Out", marker_color="#B9CFCB")
         fig.update_layout(barmode="group", height=300, margin=dict(l=10, r=10, t=40, b=10),
                           title="Crossings per 10-second bucket")
         st.plotly_chart(fig, width="stretch")
@@ -106,7 +106,7 @@ def main() -> None:
 
         accuracy_panel(r["total"], int(sample["manual_count"]) if st.session_state.get("ff_is_sample") else 0)
 
-    st.image(str(config.VIDEOS_DIR / "sample_preview.png"), width="stretch")
+    st.image(str(config.VIDEOS_DIR / "sample_preview.png"), width=420)
     st.caption("Preview still (synthetic) — no frames are stored")
 
     runs = store.list_footfall_runs()

@@ -62,11 +62,11 @@ def scenario_panel(persona, mode: str) -> None:
         if d.newly_reachable:
             with st.expander(f"Newly reachable combinations, modelled ({len(d.newly_reachable)})", expanded=True):
                 st.dataframe([
-                    {"from": node_name(G, x["residential"]), "persona": ui.persona_label(x["persona"]),
+                    {"from": node_name(G, x["residential"]), "profile": ui.persona_short(x["persona"]),
                      "destination": node_name(G, x["dest"]), "distance": ui.fmt_m(x["length_m"]), "before": x["before"]}
                     for x in d.newly_reachable
                 ], hide_index=True, width="stretch")
-        st.dataframe([{"persona": ui.persona_label(k), "before": round(d.persona_before[k], 1),
+        st.dataframe([{"profile": ui.persona_short(k), "before": round(d.persona_before[k], 1),
                        "after": round(d.persona_after[k], 1), "change": round(pdelta[k], 1)} for k in P],
                      hide_index=True, width="stretch")
 

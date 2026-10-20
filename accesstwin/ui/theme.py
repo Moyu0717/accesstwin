@@ -64,7 +64,10 @@ header[data-testid="stHeader"] {{background:transparent;height:0;min-height:0}}
 .block-container, [data-testid="stMainBlockContainer"] {{padding-top:0.6rem;padding-bottom:72px;max-width:100%}}
 [data-testid="stSidebar"] {{background:var(--surface-panel);border-right:1px solid var(--border-default)}}
 h1,h2,h3 {{font-weight:500;letter-spacing:-.4px;color:var(--text-primary)}}
-h1 {{font-size:1.65rem}} h2 {{font-size:1.35rem}} h3 {{font-size:1.1rem}}
+h1 {{font-size:24px}} h2 {{font-size:20px}} h3 {{font-size:17px}}
+[data-testid="stAlert"] > div {{background:transparent !important;border:0;border-left:3px solid var(--border-default);border-radius:0;color:var(--text-primary)}}
+[data-testid="stAlertContentWarning"] {{color:var(--text-primary)}}
+[data-testid="stElementContainer"]:has(.at-mobile-only:only-child):not(:has(.at-eyebrow)) {{display:none}}
 p, li, label, [data-testid="stMarkdownContainer"] {{font-size:15px}}
 [data-testid="stCaptionContainer"], .at-muted {{font-size:13px;color:var(--text-secondary)}}
 [data-testid="stMetricValue"] {{font-variant-numeric:tabular-nums;font-weight:400}}
@@ -86,6 +89,7 @@ a:focus-visible, button:focus-visible, [role="tab"]:focus-visible, input:focus-v
 .at-chip {{display:inline-block;font-size:12px;letter-spacing:.6px;text-transform:uppercase;padding:3px 8px;border:1px solid var(--border-default);
   border-radius:2px;color:var(--text-secondary);background:var(--surface-panel)}}
 .at-chip.sim {{color:var(--accent-strong);border-color:#D6B8A4;background:#F6EEE6}}
+.at-chip.pending {{color:var(--state-pending);border-color:#D9CDAF;background:#FBF7EC}}
 .at-chip.syn {{color:var(--state-pending);border-color:#D9CDAF;background:#F6F2E6}}
 .at-eyebrow {{font-size:12px;letter-spacing:1.2px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;margin:4px 0 6px}}
 /* Panels */
@@ -144,6 +148,7 @@ table.at-cmp td.sc {{color:var(--accent-strong);background:#F6F0E6}}
 .at-cmp-wrap {{overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch}}
 .at-h2 {{font-size:24px;font-weight:400;letter-spacing:-.5px;line-height:1.2;margin:2px 0 6px;color:var(--text-primary)}}
 .at-mobile-only, .st-key-ws_mobile_action, .st-key-ws_hero_mob {{display:none}}
+[data-testid="stLayoutWrapper"]:has(> .st-key-ws_mobile_action), [data-testid="stLayoutWrapper"]:has(> .st-key-ws_hero_mob) {{display:none}}
 /* Secondary navigation links look like outlined buttons (stage tabs in the project bar stay plain). */
 [data-testid="stMain"] [data-testid="stPageLink"] a {{border:1px solid var(--border-default);background:var(--surface-panel);padding:0 12px}}
 [data-testid="stHorizontalBlock"]:has(.at-tabs) [data-testid="stPageLink"] a {{border:none;background:transparent}}
@@ -154,6 +159,7 @@ table.at-cmp td.sc {{color:var(--accent-strong);background:#F6F0E6}}
 /* Legacy cards keep working, restyled with hairlines */
 .at-card {{border:0;border-top:1px solid var(--border-default);border-left:3px solid var(--border-default);border-radius:0;padding:10px 14px;background:transparent;margin-bottom:10px}}
 .at-pagehead {{margin:4px 0 10px}}
+.at-route-head {{border-top:1px solid var(--border-default);border-bottom:1px solid var(--border-default);padding:12px 0;margin:4px 0 8px}}
 .at-grid4 {{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:8px 0 12px}}
 @media (max-width:640px) {{.at-grid4 {{grid-template-columns:repeat(2,minmax(0,1fr))}}}}
 .at-pagetitle {{font-size:24px !important;font-weight:400 !important;letter-spacing:-.5px;margin:2px 0 4px !important;padding:0 !important}}
@@ -174,10 +180,14 @@ table.at-cmp td.sc {{color:var(--accent-strong);background:#F6F0E6}}
   [data-testid="stColumn"]:has(.at-ws-inspector) {{order:-1}}
   [data-testid="stColumn"]:has(.at-ws-score) {{order:-3}}
   .at-mobile-only, .st-key-ws_mobile_action {{display:block}}
+  [data-testid="stElementContainer"]:has(.at-mobile-only) {{display:block !important}}
+  .st-key-ws_mobile_action {{margin-top:6px}}
   .st-key-ws_top_action {{display:none}}
   [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] .at-tabs) > [data-testid="stColumn"]:has(.at-brand)
     {{flex:0 0 30px !important;min-width:30px !important}}
   .st-key-ws_hero_desk {{display:none}} .st-key-ws_hero_mob {{display:block}}
+  [data-testid="stLayoutWrapper"]:has(> .st-key-ws_mobile_action), [data-testid="stLayoutWrapper"]:has(> .st-key-ws_hero_mob) {{display:flex}}
+  [data-testid="stLayoutWrapper"]:has(> .st-key-ws_hero_desk), [data-testid="stLayoutWrapper"]:has(> .st-key-ws_top_action) {{display:none}}
   table.at-cmp {{min-width:620px}}
   .at-title {{font-size:26px}} .at-score {{font-size:44px}}
   .at-bar {{gap:10px}} .at-project, .at-brand-text {{display:none}}

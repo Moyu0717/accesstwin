@@ -184,7 +184,8 @@ def main() -> None:
     gm.columns = [ui.persona_short(c) for c in gm.columns]
     fig = px.imshow(gm, text_auto=".0f", zmin=0, zmax=100, color_continuous_scale=["#F3F5F0", "#9DBAB6", "#2F5F5C"], aspect="auto",
                     labels={"color": "Access Score"})
-    fig.update_layout(height=300, margin=dict(l=10, r=10, t=10, b=10))
+    fig.update_layout(height=300, margin=dict(l=10, r=10, t=10, b=10), font=dict(size=13, color="#242824"))
+    fig.update_traces(textfont=dict(size=14, color="#111611"))
     st.plotly_chart(fig, width="stretch")
     _low = gm.stack().idxmin()
     st.caption(f"Heatmap summary: lowest score {gm.stack().min():.0f}/100 for {_low[1]} at {_low[0]}; "

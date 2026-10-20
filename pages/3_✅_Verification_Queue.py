@@ -54,12 +54,13 @@ def main() -> None:
         ai = r.get("ai", {})
         edge = find_edge(G, r["edge_id"]) or {}
         with st.container(border=True):
-            c1, c2, c3 = st.columns([1, 2, 1])
+            c1, c2, c3 = st.columns([1, 3, 1], vertical_alignment="center")
             photo = config.resolve_path(r["photo_path"]) if r.get("photo_path") else None
             if photo and photo.exists():
                 c1.image(str(photo), width="stretch")
             else:
                 c1.caption("No photo")
+            c2.markdown("<span class='at-chip pending'>Pending review</span>", unsafe_allow_html=True)
             c2.markdown(
                 f"**#{r['id']} · {r['edge_id']}** — {node_name(G, edge.get('from', ''))} ↔ {node_name(G, edge.get('to', ''))}  \n"
                 f"Reporter: **{r['reporter_role']}** · {r['created_at'][:16].replace('T', ' ')}  \n"
