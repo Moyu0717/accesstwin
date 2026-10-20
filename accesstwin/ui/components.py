@@ -27,6 +27,7 @@ def setup_page(title: str, icon: str = "♿", page_config_done: bool = False) ->
     if not page_config_done:
         st.set_page_config(page_title=f"{title} · AccessTwin", page_icon=icon, layout="wide",
                            initial_sidebar_state="collapsed")
+    store.use_session(session_id())  # X1: this visitor's own sandbox DB (seeded on first visit)
     store.init_db()
     from accesstwin.ui import guide  # local import: guide imports this module's siblings only
 
@@ -48,6 +49,25 @@ def personas() -> dict[str, Persona]:
 @st.cache_data
 def _township_cached() -> dict:
     return load_township()
+
+
+def session_id() -> str | None:
+    """Streamlit session id for the per-visitor sandbox, or None when the sandbox is disabled (tests/CLI)."""
+    import os
+
+    if os.environ.get("ACCESSTWIN_SESSION_SANDBOX", "1").strip() in {"0", "false", "no"}:
+        return None
+    try:
+        from streamlit.runtime.scriptrunner import get_script_run_ctx
+
+        ctx = get_script_run_ctx()
+        if ctx is not None and getattr(ctx, "session_id", None):
+            return ctx.session_id
+    except Exception:
+        pass
+    import uuid
+
+    return st.session_state.setdefault("_at_session_id", uuid.uuid4().hex)
 
 
 def overlay_key() -> str:
@@ -135,8 +155,7 @@ def sidebar(bar: bool = True) -> Persona:
         st.caption(t("fictional"))
         st.divider()
         if st.button(t("reset"), help="Clears reports, verifications and work orders, then re-seeds sample reports."):
-            store.reset_demo()
-            st.cache_data.clear()
+            store.reset_demo()  # only this session's sandbox; caches are keyed by the overlay, nothing global
             st.success("Demo data reset.")
     return ps[choice]
 

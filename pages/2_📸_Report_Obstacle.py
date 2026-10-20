@@ -112,8 +112,9 @@ def main() -> None:
     if st.button("Submit report", type="primary", key="ro_submit"):
         photo_path = None
         if src == "Upload a photo":
-            config.UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
-            dest = config.UPLOADS_DIR / f"{uuid.uuid4().hex[:10]}{Path(filename).suffix.lower()}"
+            up_dir = store.session_uploads_dir()  # X1: uploads are per session
+            up_dir.mkdir(parents=True, exist_ok=True)
+            dest = up_dir / f"{uuid.uuid4().hex[:10]}{Path(filename).suffix.lower()}"
             dest.write_bytes(image_bytes)
             photo_path = dest.as_posix()
         else:

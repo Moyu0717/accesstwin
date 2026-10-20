@@ -2,14 +2,24 @@
 
 The base township JSON is never modified. Edge state changes live here and are applied
 as an overlay when the graph is loaded:
-- approving an obstacle report  -> edge becomes `blocked`
-- verifying an edge as passable -> edge becomes `verified_accessible`
+- approving an obstacle report confirms a *specific* obstacle (fix pack X2): a physical fact (e.g. the
+  recorded step, a broken surface) or a persona-specific obstruction (e.g. parked cars on a kerb ramp).
+  It never closes the segment for everyone.
+- verifying an edge as passable -> edge becomes `verified_accessible`; a verified repair (WO#) applies the
+  upgrade's physical changes and clears the obstacles it resolves.
 The most recent event per edge wins.
+
+Per-session sandbox (fix pack X1): every Streamlit session gets its own SQLite file
+(<state>/sessions/<session_id>.db) seeded from sample_reports.json, selected through a context variable —
+config.DB_PATH is never changed. Outside a session (tests, CLI) config.DB_PATH is used.
 """
 from __future__ import annotations
 
+import contextvars
 import json
+import re
 import sqlite3
+import time
 from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
@@ -64,8 +74,55 @@ def _now() -> str:
     return datetime.now().isoformat(timespec="microseconds")
 
 
+_SESSION_DB: contextvars.ContextVar[Path | None] = contextvars.ContextVar("accesstwin_session_db", default=None)
+SESSION_MAX_AGE_S = 6 * 3600
+_cleaned = False
+
+
 def db_path() -> Path:
-    return Path(config.DB_PATH)
+    return _SESSION_DB.get() or Path(config.DB_PATH)
+
+
+def sessions_dir() -> Path:
+    return Path(config.STATE_DIR) / "sessions"
+
+
+def use_session(session_id: str | None) -> Path | None:
+    """Point this script run at the session's own DB (seeded on first use). None → shared config.DB_PATH."""
+    global _cleaned
+    if not session_id:
+        _SESSION_DB.set(None)
+        return None
+    safe = re.sub(r"[^A-Za-z0-9_-]", "", session_id)[:64] or "anon"
+    path = sessions_dir() / f"{safe}.db"
+    if not _cleaned:  # best-effort cleanup of stale sandboxes, once per process
+        _cleaned = True
+        cleanup_sessions()
+    _SESSION_DB.set(path)
+    if not path.exists():
+        init_db(seed=True)
+    return path
+
+
+def cleanup_sessions(max_age_s: float = SESSION_MAX_AGE_S) -> int:
+    d = sessions_dir()
+    if not d.exists():
+        return 0
+    n, now = 0, time.time()
+    for f in d.glob("*.db"):
+        try:
+            if now - f.stat().st_mtime > max_age_s:
+                f.unlink()
+                n += 1
+        except OSError:
+            pass
+    return n
+
+
+def session_uploads_dir() -> Path:
+    """Uploads are per session too (same stem as the session DB)."""
+    cur = _SESSION_DB.get()
+    return Path(config.UPLOADS_DIR) / (cur.stem if cur else "shared")
 
 
 @contextmanager
@@ -196,6 +253,43 @@ def _upgrade_changes() -> dict[str, tuple[str, dict]]:
             for u in ups if u.get("edge_id")}
 
 
+# Approved report type → what it confirms (fix pack X2; documented in DECISIONS).
+OBSTACLE_RULES: dict[str, dict] = {
+    "high_curb": {"kind": "fact"},
+    "missing_ramp": {"kind": "fact"},
+    "blocked_ramp": {"kind": "obstruction", "personas": ["wheelchair", "stroller"],
+                     "text": "kerb ramp obstructed by parked vehicles"},
+    "narrow_path": {"kind": "obstruction", "personas": ["wheelchair", "stroller"],
+                    "text": "temporary obstruction narrows the path"},
+    "broken_surface": {"kind": "fact", "attrs": {"surface": "broken"}},
+    "flooding": {"kind": "obstruction", "personas": ["wheelchair", "elderly", "stroller", "visually_impaired"],
+                 "text": "temporary flooding"},
+    "no_tactile": {"kind": "fact", "attrs": {"tactile_paving": False}},
+    "other": {"kind": "inspection"},
+    "none": {"kind": "inspection"},
+}
+
+
+def obstacle_from_report(report_id: int, ai: dict) -> tuple[dict, dict]:
+    """(obstacle record, physical attribute changes) for an approved report."""
+    otype = (ai or {}).get("obstacle_type", "other")
+    rule = OBSTACLE_RULES.get(otype, OBSTACLE_RULES["other"])
+    personas = list(rule.get("personas", []))
+    if rule["kind"] == "obstruction" and otype in ("blocked_ramp", "narrow_path") and (ai or {}).get("affected_personas"):
+        personas = [p for p in ai["affected_personas"] if p in OBSTACLE_RULES["flooding"]["personas"]] or personas
+    ob = {"report_id": report_id, "type": otype, "kind": rule["kind"], "personas": personas,
+          "text": rule.get("text", otype.replace("_", " "))}
+    return ob, dict(rule.get("attrs", {}))
+
+
+def _upgrade_resolves() -> dict[str, list[str]]:
+    try:
+        with open(config.UPGRADES_PATH, encoding="utf-8") as f:
+            return {u["id"]: list(u.get("resolves", [])) for u in json.load(f)}
+    except (OSError, ValueError):
+        return {}
+
+
 def get_overlay() -> dict[str, dict]:
     """edge_id -> attribute overlay from approved reports, verifications and verified repairs (latest event wins).
 
@@ -204,11 +298,14 @@ def get_overlay() -> dict[str, dict]:
     """
     events: list[tuple[str, str, dict]] = []
     repairs = _upgrade_changes()
+    resolves = _upgrade_resolves()
     with connect() as conn:
         conn.executescript(SCHEMA)
         orders = {r["id"]: r["upgrade_id"] for r in conn.execute("SELECT id, upgrade_id FROM work_orders WHERE status='done'")}
-        for r in conn.execute("SELECT edge_id, decided_at FROM reports WHERE status='approved'"):
-            events.append((r["decided_at"] or "", r["edge_id"], {"status": "blocked"}))
+        for r in conn.execute("SELECT id, edge_id, ai_json, decided_at FROM reports WHERE status='approved'"):
+            ob, attrs = obstacle_from_report(int(r["id"]), json.loads(r["ai_json"] or "{}"))
+            ob["confirmed_at"] = (r["decided_at"] or "")[:10]
+            events.append((r["decided_at"] or "", r["edge_id"], {**attrs, "_add_obstacle": ob}))
         for r in conn.execute("SELECT edge_id, result, note, created_at FROM verifications"):
             status = "verified_accessible" if r["result"] == "passable" else "blocked"
             attrs = {"status": status}
@@ -218,13 +315,28 @@ def get_overlay() -> dict[str, dict]:
                     oid = int(note[len(WO_NOTE_PREFIX):].split()[0])
                 except (ValueError, IndexError):
                     oid = None
-                edge_changes = repairs.get(orders.get(oid, ""))
+                upgrade_id = orders.get(oid, "")
+                edge_changes = repairs.get(upgrade_id)
                 if edge_changes and edge_changes[0] == r["edge_id"]:
-                    attrs = {**edge_changes[1], "status": status}
+                    attrs = {**edge_changes[1], "status": status, "_resolve": resolves.get(upgrade_id, [])}
             events.append((r["created_at"], r["edge_id"], attrs))
     overlay: dict[str, dict] = {}
     for _ts, edge_id, attrs in sorted(events, key=lambda e: e[0]):
-        overlay[edge_id] = {**overlay.get(edge_id, {}), **attrs}  # repairs persist; status follows the latest event
+        cur = dict(overlay.get(edge_id, {}))
+        attrs = dict(attrs)
+        add = attrs.pop("_add_obstacle", None)
+        resolve = attrs.pop("_resolve", None)
+        cur.update(attrs)  # facts and repairs persist; status follows the latest event
+        obs = list(cur.get("obstacles", []))
+        if add:
+            obs.append(add)
+            if add["kind"] == "inspection":
+                cur["needs_inspection"] = True
+        if resolve is not None:
+            obs = [o for o in obs if o["type"] not in resolve]
+        if obs or "obstacles" in cur:
+            cur["obstacles"] = obs
+        overlay[edge_id] = cur
     return overlay
 
 

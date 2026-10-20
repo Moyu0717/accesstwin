@@ -103,7 +103,6 @@ def work_order_board() -> None:
                                            "surveyed — not modelled as an on-site repair here.")
                             elif st.button("Verify on site (passable)", key=f"wo_verify_{o['id']}", type="primary"):
                                 store.verify_work_order(o["id"], "guard", "repair checked on site")
-                                st.cache_data.clear()
                                 st.rerun(scope="app")
 
 

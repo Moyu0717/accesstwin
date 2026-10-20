@@ -107,8 +107,7 @@ def panel(page: str) -> None:
                 st.session_state["guide_step"] = None
                 st.rerun()
             if stop.reset_next:
-                store.reset_demo()
-                st.cache_data.clear()
+                store.reset_demo()  # this session's sandbox only
             queue_presets(stop.preset_next)
             st.session_state["guide_step"] = i + 1
             _go(STOPS[i + 1].page)

@@ -166,13 +166,24 @@ def _check_township(data, errors: list[str]) -> tuple[list[dict], list[dict]]:
     with_cctv = sum(1 for e in edges if isinstance(e, dict) and e.get("cctv_id"))
     if unverified < 3:
         errors.append(f"township.json: {unverified} unverified edges (need >= 3)")
-    if blocked < 1:
-        errors.append("township.json: no blocked edge")
+    # Fix pack X2: barriers come from approved obstacle reports, not from a closed status in the base data.
+    if blocked < 1 and not _seed_has_approved_obstruction():
+        errors.append("township.json: no blocked edge and no approved obstruction report in the seed")
     if with_cctv < 3:
         errors.append(f"township.json: {with_cctv} edges with cctv_id (need >= 3)")
 
     _check_storyline(nodes, edges, errors)
     return nodes, edges
+
+
+def _seed_has_approved_obstruction() -> bool:
+    try:
+        with open(SAMPLE_REPORTS_PATH, encoding="utf-8") as f:
+            seeds = json.load(f)
+    except (OSError, ValueError):
+        return False
+    return any(r.get("status") == "approved" and r.get("obstacle_type") in ("blocked_ramp", "narrow_path", "flooding")
+               for r in seeds)
 
 
 def _check_storyline(nodes: list[dict], edges: list[dict], errors: list[str]) -> None:

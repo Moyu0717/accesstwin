@@ -15,7 +15,10 @@ def edge_passable(edge: dict, persona: Persona, include_unverified: bool = False
     eid = edge["id"]
     status = edge.get("status", "unverified")
     if status == "blocked":
-        return False, f"{eid}: blocked (approved obstacle report)"
+        return False, f"{eid}: closed (explicit full closure)"
+    for ob in edge.get("obstacles", []) or []:
+        if ob.get("kind") == "obstruction" and persona.key in ob.get("personas", []):
+            return False, f"{eid}: {ob.get('text', ob.get('type'))} (report #{ob.get('report_id')})"
     if status == "unverified" and not include_unverified:
         return False, f"{eid}: unverified — pending on-site verification"
     curb = float(edge.get("curb_height_cm", 0) or 0)

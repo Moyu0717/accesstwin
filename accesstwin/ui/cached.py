@@ -1,7 +1,8 @@
 """Cached pure computations, keyed by the overlay fingerprint (fix pack F3.6).
 
 Every function takes hashable keys only and rebuilds what it needs, so results are shared across reruns and
-pages. "Reset demo data" calls st.cache_data.clear(); any approval/verification changes the overlay key.
+pages. Each session has its own sandbox DB; results depend only on the overlay key, so caches are safely
+shared and "Reset demo data" never clears anything global.
 """
 from __future__ import annotations
 

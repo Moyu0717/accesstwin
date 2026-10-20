@@ -457,9 +457,9 @@
       "tactile_paving": false,
       "covered": false,
       "lit_at_night": true,
-      "status": "blocked",
+      "status": "verified_accessible",
       "cctv_id": null,
-      "note": "Kerb ramp blocked by parked vehicles."
+      "note": "Kerb ramp at the grocery approach; a guard report (SR2) confirms it is regularly obstructed by parked vehicles."
     },
     {
       "id": "E21",
