@@ -76,6 +76,6 @@ def test_raising_camera_count_clears_suppression(G, P, counts):
 def test_camera_missing_from_observed_has_no_counts(G, P, counts):
     partial = {k: v for k, v in counts.items() if k != "CAM_02"}
     e7 = _by_id(suppressed_demand(G, P, partial))["E7"]
-    assert e7.status == "Camera has no counts yet"
+    assert e7.status == "No counts yet"
     assert e7.observed is None
     assert e7.suppressed is False

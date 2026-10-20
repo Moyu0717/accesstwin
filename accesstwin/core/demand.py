@@ -18,6 +18,7 @@ from accesstwin.core.personas import Persona
 from accesstwin.core.routing import baseline_route, edge_passable
 
 SUPPRESSION_THRESHOLD = 0.4
+OFF_ROUTE = "No modelled demand (off-route)"  # camera on a segment no shortest route uses
 DISTANCE_EXPONENT = 1.5
 
 
@@ -79,7 +80,7 @@ def suppressed_demand(G: nx.MultiGraph, personas: dict[str, Persona], observed: 
         cam = e.get("cctv_id")
         if not cam or cam not in observed:
             out.append(EdgeDemand(eid, cam, None, None, None,
-                                  status="No CCTV coverage" if not cam else "Camera has no counts yet"))
+                                  status="No CCTV coverage" if not cam else "No counts yet"))
             continue
         obs = float(observed[cam])
         exp = raw.get(eid, 0.0) * scale
@@ -92,7 +93,7 @@ def suppressed_demand(G: nx.MultiGraph, personas: dict[str, Persona], observed: 
                 reasons.extend(why)
         suppressed = ratio is not None and ratio < SUPPRESSION_THRESHOLD and bool(barrier_ids)
         if ratio is None:
-            status = "Not on any shortest route (no expected flow)"
+            status = OFF_ROUTE
         elif suppressed:
             status = "Suppressed demand"
         else:
@@ -101,11 +102,16 @@ def suppressed_demand(G: nx.MultiGraph, personas: dict[str, Persona], observed: 
     return out
 
 
+def _num(x, digits: int = 0):
+    return "—" if x is None else (round(x) if digits == 0 else round(x, digits))
+
+
 def demand_frame(rows: list[EdgeDemand], covered_only: bool = True) -> pd.DataFrame:
+    """Display table. Off-route cameras show "—" for expected/ratio instead of 0 / None."""
     data = [{
-        "edge": r.edge_id, "camera": r.cctv_id or "—", "observed": None if r.observed is None else round(r.observed),
-        "expected": None if r.expected is None else round(r.expected),
-        "ratio": None if r.ratio is None else round(r.ratio, 2), "status": r.status,
-        "barriers on route": ", ".join(r.barrier_edges),
+        "segment": r.edge_id, "camera": r.cctv_id or "—", "observed": _num(r.observed),
+        "expected": "—" if r.status == OFF_ROUTE else _num(r.expected),
+        "ratio": _num(r.ratio, 2), "status": r.status,
+        "barriers on route": ", ".join(r.barrier_edges) or "—",
     } for r in rows if (r.cctv_id or not covered_only)]
     return pd.DataFrame(data)

@@ -14,7 +14,12 @@ from accesstwin.core.personas import Persona, load_personas
 from accesstwin.ui.i18n import t
 
 PERSONA_ICONS = {"wheelchair": "♿", "elderly": "🧓", "stroller": "👶", "visually_impaired": "🦯"}
-PERSONA_SHORT = {"wheelchair": "Wheelchair", "elderly": "Elderly", "stroller": "Stroller", "visually_impaired": "Low vision"}
+# Wide status / barrier columns so labels like "No modelled demand (off-route)" never truncate.
+DEMAND_COLUMNS = {
+    "status": st.column_config.TextColumn("status", width="large"),
+    "barriers on route": st.column_config.TextColumn("barriers on route", width="medium"),
+}
+PERSONA_SHORT = {"wheelchair": "Wheelchair", "elderly": "Elderly", "stroller": "Stroller", "visually_impaired": "Visually impaired"}
 
 
 def setup_page(title: str, icon: str = "♿", page_config_done: bool = False) -> None:
@@ -29,7 +34,7 @@ def setup_page(title: str, icon: str = "♿", page_config_done: bool = False) ->
         .at-bad {border-color:#FCA5A5; background:#FEF2F2;}
         .at-good {border-color:#86EFAC; background:#F0FDF4;}
         .at-warn {border-color:#FCD34D; background:#FFFBEB;}
-        .at-muted {color:#6B7280; font-size:0.85rem;}
+        .at-muted {color:#4B5563; font-size:0.95rem;}
         .at-badge {display:inline-block; padding:2px 10px; border-radius:999px; font-size:0.78rem; font-weight:600;}
         </style>
         """,

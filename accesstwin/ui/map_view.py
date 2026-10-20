@@ -17,7 +17,12 @@ from accesstwin.core.graph import build_graph, find_edge, iter_edges, load_towns
 from accesstwin.core.personas import Persona, load_personas
 from accesstwin.core.routing import edge_passable
 
-STATUS_COLOURS = {"verified_accessible": "#16A34A", "blocked": "#DC2626", "unverified": "#9CA3AF"}
+# Colour-blind-safe (Okabe–Ito) palette, and every status also has a non-colour cue:
+# verified = solid blue, blocked = solid vermillion + ✖ marker, unverified = grey dashed,
+# impassable for the selected persona = thin dotted vermillion.
+STATUS_COLOURS = {"verified_accessible": "#0072B2", "blocked": "#D55E00", "unverified": "#8C8C8C"}
+STATUS_DASH = {"verified_accessible": None, "blocked": None, "unverified": "6 8"}
+IMPASSABLE_COLOUR, IMPASSABLE_DASH = "#D55E00", "2 6"
 CATEGORY_COLOURS = {"clinic": "#DC2626", "bus_stop": "#1D4ED8", "school": "#7C3AED", "grocery": "#EA580C", "park": "#15803D"}
 
 
@@ -69,17 +74,20 @@ def base_map(
         status = edge.get("status", "unverified")
         colour = STATUS_COLOURS.get(status, "#9CA3AF")
         why = None
-        weight, dash, opacity = 5, None, 0.85
-        if status == "unverified":
-            dash = "6 8"
+        weight, opacity = 5, 0.9
+        dash = STATUS_DASH.get(status)
         if persona is not None and status != "blocked":
             ok, why = edge_passable(edge, persona, include_unverified)
             if not ok and status != "unverified":
-                colour, weight = "#DC2626", 2  # impassable for this persona: thin red
+                colour, weight, dash = IMPASSABLE_COLOUR, 3, IMPASSABLE_DASH  # impassable for this persona
         if edge["id"] in highlight:
             weight, opacity, colour = 9, 1.0, "#F59E0B"
         folium.PolyLine(edge_line(G, edge), color=colour, weight=weight, opacity=opacity, dash_array=dash,
                         tooltip=_edge_tooltip(edge, why)).add_to(m)
+        if status == "blocked":  # non-colour cue for blocked segments
+            folium.map.Marker(edge_midpoint(G, edge), tooltip=f"{edge['id']}: blocked", icon=folium.DivIcon(
+                html="<div style='font-size:15px;line-height:15px;color:#D55E00;font-weight:900;"
+                     "text-shadow:0 0 2px #fff,0 0 2px #fff'>✖</div>")).add_to(m)
         if show_ids:
             folium.map.Marker(edge_midpoint(G, edge), icon=folium.DivIcon(
                 html=f"<div style='font-size:9px;color:#374151;font-weight:600'>{edge['id']}</div>")).add_to(m)
@@ -162,7 +170,8 @@ def show_map(height: int = 480, **keys) -> None:
 
 
 LEGEND_MD = (
-    "🟩 verified accessible &nbsp; 🟥 blocked &nbsp; ⬜ grey dashed = unverified &nbsp; "
-    "thin red = impassable for selected persona &nbsp; 🟠 pending report &nbsp; "
-    "🔵 residential &nbsp; ● destinations (red clinic, blue bus stop, purple school, orange grocery, green park)"
+    "**Segments:** solid blue = verified accessible · solid orange-red with ✖ = blocked · grey dashed = unverified · "
+    "thin dotted orange-red = impassable for the selected persona · amber thick = upgraded (simulator). "
+    "**Points:** light-blue circles = homes · coloured circles = destinations (hover for the name) · "
+    "orange dot = pending report."
 )

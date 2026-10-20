@@ -76,9 +76,9 @@ def main() -> None:
                     f"Observed <b>{d.observed:.0f}</b> vs expected <b>{d.expected:.0f}</b> (ratio {d.ratio:.2f} &lt; 0.4).<br>"
                     f"Barriers on routes through it: {', '.join(d.barrier_edges)}.<br>"
                     "<span class='at-muted'>Low traffic ≠ unimportant — people may not walk here because they can't.</span>", "bad")
-        st.dataframe(demand_frame(demand), hide_index=True, width="stretch")
+        st.dataframe(demand_frame(demand), width="stretch", hide_index=True, column_config=ui.DEMAND_COLUMNS)
         st.caption("Gravity model: expected ∝ population × importance ÷ distance^1.5, scaled to total observed. "
-                   "Edges without a camera show 'No CCTV coverage' and are never inferred.")
+                   "Segments without a camera show 'No CCTV coverage' and are never inferred.")
 
     st.subheader("🔥 Gap heatmap (residential × persona)")
     gm = scores.gap_matrix(G)
@@ -86,6 +86,9 @@ def main() -> None:
     fig = px.imshow(gm, text_auto=".0f", zmin=0, zmax=100, color_continuous_scale="RdYlGn", aspect="auto")
     fig.update_layout(height=300, margin=dict(l=10, r=10, t=10, b=10))
     st.plotly_chart(fig, width="stretch")
+    _low = gm.stack().idxmin()
+    st.caption(f"Heatmap summary: lowest score {gm.stack().min():.0f}/100 for {_low[1]} at {_low[0]}; "
+               f"highest {gm.stack().max():.0f}/100. Higher is better.")
 
     c1, c2 = st.columns(2)
     with c1:
@@ -94,6 +97,8 @@ def main() -> None:
         if stats["total"]:
             df = pd.DataFrame([{"obstacle type": k.replace("_", " "), "reports": v} for k, v in stats["by_type"].items()])
             st.plotly_chart(px.bar(df, x="obstacle type", y="reports", height=260), width="stretch")
+            _most = df.sort_values("reports", ascending=False).iloc[0]
+            st.caption(f"Chart summary: {stats['total']} reports; most common type: {_most['obstacle type']} ({_most['reports']}).")
             st.caption("By status: " + ", ".join(f"{k} {v}" for k, v in stats["by_status"].items())
                        + " · by reporter: " + ", ".join(f"{k} {v}" for k, v in stats["by_role"].items()))
         else:

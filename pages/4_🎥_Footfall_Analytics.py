@@ -59,7 +59,7 @@ def main() -> None:
     cam_ids = list(labels)
     c1, c2 = st.columns(2)
     line_frac = c1.slider("Counting line position (fraction of frame height)", 0.1, 0.9, 0.5, 0.05, key="ff_line")
-    cam = c2.selectbox("Camera (linked edge)", cam_ids, index=cam_ids.index(sample["cctv_id"]),
+    cam = c2.selectbox("Camera (linked segment)", cam_ids, index=cam_ids.index(sample["cctv_id"]),
                        format_func=lambda c: labels[c], key="ff_cam")
 
     if st.button("Run count", key="ff_run", type="primary"):
@@ -98,6 +98,8 @@ def main() -> None:
         fig.update_layout(barmode="group", height=300, margin=dict(l=10, r=10, t=40, b=10),
                           title="Crossings per 10-second bucket")
         st.plotly_chart(fig, width="stretch")
+        st.caption(f"Chart summary: {r['in']} crossings in and {r['out']} out across {len(b)} ten-second buckets; "
+                   f"busiest bucket {max(b, key=lambda x: x['in'] + x['out'])['t_start_s']} s.")
 
         accuracy_panel(r["total"], int(sample["manual_count"]) if st.session_state.get("ff_is_sample") else 0)
 
@@ -119,7 +121,7 @@ def main() -> None:
                 f"Observed {_d.observed:.0f} pedestrians/day vs about {_d.expected:.0f} expected from the gravity model "
                 f"(ratio {_d.ratio:.2f}). The route has a barrier ({', '.join(_d.barrier_edges)}): "
                 "people may not walk here because they can't.", "bad")
-    st.dataframe(demand_frame(_demand), width="stretch", hide_index=True)
+    st.dataframe(demand_frame(_demand), width="stretch", hide_index=True, column_config=ui.DEMAND_COLUMNS)
     st.caption("Daily counts per camera are synthetic demo figures until real CCTV runs are recorded. "
                "See the Planner Dashboard for the full analysis and the Planning Brief.")
     ui.page_link("pages/6_📊_Planner_Dashboard.py", label="Open the Planner Dashboard", icon="📊")

@@ -102,6 +102,9 @@ def main() -> None:
                      hover_data=["title", "delta_index", "new_reachable_pairs", "beneficiaries"])
         fig.update_layout(yaxis={"categoryorder": "total ascending"}, height=320, margin=dict(l=10, r=10, t=10, b=10))
         st.plotly_chart(fig, width="stretch")
+        _top = df.iloc[0]
+        st.caption(f"Chart summary: {_top['id']} ({_top['cost_tier']} cost) ranks first with priority score {_top['roi']:.1f}; "
+                   f"{int((df['roi'] == 0).sum())} of {len(df)} candidates show no measurable access gain.")
         st.dataframe(df[["rank", "id", "title", "cost_tier", "delta_index", "new_reachable_pairs", "beneficiaries",
                          "avg_detour_reduction_m", "benefit", "roi"]], hide_index=True, width="stretch")
         with st.expander("Top 5 — plain-language explanations", expanded=False):

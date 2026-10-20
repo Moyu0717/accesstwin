@@ -107,7 +107,7 @@ def main() -> None:
                      hide_index=True, width="stretch")
         st.markdown("**Verifications**")
         st.dataframe(store.list_verifications(), hide_index=True, width="stretch")
-        st.markdown("**Current overlay** (edge → status)")
+        st.markdown("**Current overlay** (segment → status)")
         st.json(store.get_overlay())
 
     ui.disclaimer()
