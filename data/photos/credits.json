@@ -1,0 +1,93 @@
+{
+  "note": "Openly licensed photos from Wikimedia Commons, licence verified on each file page. Used as illustrations; they do not show the fictional township.",
+  "photos": {
+    "kerb_high_granite_step.jpg": {
+      "label": "High granite kerb at a street corner",
+      "author": "Nick-philly",
+      "licence": "CC BY-SA 4.0",
+      "licence_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "source": "Wikimedia Commons",
+      "url": "https://commons.wikimedia.org/wiki/File:Curb_cut_for_wheelchair_ramp_(DSC_3500).jpg",
+      "source_title": "File:Curb cut for wheelchair ramp (DSC 3500).jpg",
+      "changes": "resized to max 1280 px; metadata removed; re-encoded as JPEG",
+      "retrieved": "2026-10-21"
+    },
+    "ok_kerb_ramp_tactile_corner.jpg": {
+      "label": "Kerb ramp with tactile warning paving",
+      "author": "NaBUru38",
+      "licence": "CC BY-SA 4.0",
+      "licence_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "source": "Wikimedia Commons",
+      "url": "https://commons.wikimedia.org/wiki/File:Rampa_peatonal_inaccesible_en_Maldonado_01.jpg",
+      "source_title": "File:Rampa peatonal inaccesible en Maldonado 01.jpg",
+      "changes": "resized to max 1280 px; metadata removed; re-encoded as JPEG",
+      "retrieved": "2026-10-21"
+    },
+    "pavement_blocked_parked_cars.jpg": {
+      "label": "Cars parked across the footway",
+      "author": "PeterEastern",
+      "licence": "CC BY 3.0",
+      "licence_url": "https://creativecommons.org/licenses/by/3.0",
+      "source": "Wikimedia Commons",
+      "url": "https://commons.wikimedia.org/wiki/File:Pavement_parking_1.JPG",
+      "source_title": "File:Pavement parking 1.JPG",
+      "changes": "licence plates blurred; resized to max 1280 px; metadata removed; re-encoded as JPEG",
+      "retrieved": "2026-10-21"
+    },
+    "pavement_cracked_broken.jpg": {
+      "label": "Cracked and broken footway slabs",
+      "author": "Downtowngal",
+      "licence": "CC BY-SA 4.0",
+      "licence_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "source": "Wikimedia Commons",
+      "url": "https://commons.wikimedia.org/wiki/File:Broken_sidewalk_LA.jpg",
+      "source_title": "File:Broken sidewalk LA.jpg",
+      "changes": "resized to max 1280 px; metadata removed; re-encoded as JPEG",
+      "retrieved": "2026-10-21"
+    },
+    "gravel_footpath_loose.jpg": {
+      "label": "Loose gravel footpath",
+      "author": "N Chadwick",
+      "licence": "CC BY-SA 2.0",
+      "licence_url": "https://creativecommons.org/licenses/by-sa/2.0",
+      "source": "Wikimedia Commons",
+      "url": "https://commons.wikimedia.org/wiki/File:Gravel_footpath_-_geograph.org.uk_-_7532069.jpg",
+      "source_title": "File:Gravel footpath - geograph.org.uk - 7532069.jpg",
+      "changes": "resized to max 1280 px; metadata removed; re-encoded as JPEG",
+      "retrieved": "2026-10-21"
+    },
+    "ok_tactile_paving_platform.jpg": {
+      "label": "Tactile warning paving at a platform edge",
+      "author": "Mx. Granger",
+      "licence": "CC0",
+      "licence_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "source": "Wikimedia Commons",
+      "url": "https://commons.wikimedia.org/wiki/File:Tactile_paving_in_China_1.jpg",
+      "source_title": "File:Tactile paving in China 1.jpg",
+      "changes": "resized to max 1280 px; metadata removed; re-encoded as JPEG",
+      "retrieved": "2026-10-21"
+    },
+    "footpath_unlit_night.jpg": {
+      "label": "Unlit footpath beside a road at night",
+      "author": "Ashley Dace",
+      "licence": "CC BY-SA 2.0",
+      "licence_url": "https://creativecommons.org/licenses/by-sa/2.0",
+      "source": "Wikimedia Commons",
+      "url": "https://commons.wikimedia.org/wiki/File:Footpath_at_Night_-_geograph.org.uk_-_1857137.jpg",
+      "source_title": "File:Footpath at Night - geograph.org.uk - 1857137.jpg",
+      "changes": "resized to max 1280 px; metadata removed; re-encoded as JPEG",
+      "retrieved": "2026-10-21"
+    },
+    "footpath_flooded.jpg": {
+      "label": "Flooded footpath",
+      "author": "Shaun Ferguson",
+      "licence": "CC BY-SA 2.0",
+      "licence_url": "https://creativecommons.org/licenses/by-sa/2.0",
+      "source": "Wikimedia Commons",
+      "url": "https://commons.wikimedia.org/wiki/File:Flooded_Footpath_-_geograph.org.uk_-_1734673.jpg",
+      "source_title": "File:Flooded Footpath - geograph.org.uk - 1734673.jpg",
+      "changes": "resized to max 1280 px; metadata removed; re-encoded as JPEG",
+      "retrieved": "2026-10-21"
+    }
+  }
+}

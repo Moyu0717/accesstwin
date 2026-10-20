@@ -60,7 +60,7 @@ def test_full_demo_script_mock_mode():
     # 1:00 Evidence — curb photo -> high_curb suggestion -> submit -> guard approves.
     rep = _page(PAGES["2"])
     rep.radio(key="ro_src").set_value("Use a sample photo").run()
-    rep.selectbox(key="ro_sample").set_value("curb_high_step.png").run()
+    rep.selectbox(key="ro_sample").set_value("kerb_high_granite_step.jpg").run()
     assert "Suggested type: high curb" in _text(rep)
     rep.selectbox(key="ro_edge").set_value("E7").run()
     rep.button(key="ro_submit").click().run()

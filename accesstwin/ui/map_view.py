@@ -174,11 +174,33 @@ def add_legend(m: folium.Map, items: list, caption: str = "Fictional layout · n
         + rows + "<div style='margin-top:4px;color:#586151'>" + html.escape(caption) + "</div></div>"))
 
 
-def add_route(m: folium.Map, G: nx.MultiGraph, path: list[str], colour: str, dashed: bool, label: str) -> None:
+def _tag(m: folium.Map, loc, text: str, border: str, colour: str = "#242824") -> None:
+    folium.map.Marker(loc, icon=folium.DivIcon(icon_size=(240, 24), icon_anchor=(-8, 30), html=(
+        "<span style='background:#FAF9F4;border:1px solid " + border + ";padding:2px 6px;font:12.5px Segoe UI,Arial,"
+        "sans-serif;color:" + colour + ";white-space:nowrap'>" + html.escape(text) + "</span>"))).add_to(m)
+
+
+def add_route(m: folium.Map, G: nx.MultiGraph, path: list[str], colour: str, dashed: bool, label: str,
+              faded: bool = False) -> None:
     if len(path) < 2:
         return
-    folium.PolyLine([_coords(G, n) for n in path], color=colour, weight=7 if not dashed else 5, opacity=0.9,
+    coords = [_coords(G, n) for n in path]
+    if faded:  # previous route in a scenario view: thin, light, labelled on the map itself
+        folium.PolyLine(coords, color=colour, weight=4, opacity=0.85, dash_array="4 8", tooltip=label).add_to(m)
+        _tag(m, coords[len(coords) // 2], label, "#C9C5B9", "#5E5A50")
+        return
+    folium.PolyLine(coords, color=colour, weight=7 if not dashed else 5, opacity=0.9,
                     dash_array="10 10" if dashed else None, tooltip=label).add_to(m)
+
+
+def add_proposed(m: folium.Map, G: nx.MultiGraph, edge_id: str, label: str) -> None:
+    """Amber halo under the simulated upgrade plus an on-map callout."""
+    e = find_edge(G, edge_id)
+    if not e:
+        return
+    folium.PolyLine([_coords(G, e["from"]), _coords(G, e["to"])], color="#E8A33D", weight=20, opacity=0.55,
+                    tooltip=label).add_to(m)
+    _tag(m, edge_midpoint(G, e), label, "#E8A33D", "#7A3E1F")
 
 
 @st.cache_data(max_entries=64, show_spinner=False)
@@ -197,6 +219,7 @@ def map_html(
     selected_label: str = "",
     street: bool = False,
     legend_key: str = "",
+    proposed_label: str = "",
 ) -> str:
     """Render a map to a standalone HTML string. All arguments are hashable keys (JSON strings), never objects.
 
@@ -215,8 +238,11 @@ def map_html(
     persona = load_personas()[persona_key] if persona_key else None
     m = base_map(G, persona, include_unverified, json.loads(highlight_key), json.loads(pending_key), show_ids, zoom,
                  selected=selected, street=street)
-    for path, colour, dashed, label in json.loads(routes_key):
-        add_route(m, G, path, colour, dashed, label)
+    highlights = json.loads(highlight_key)
+    if proposed_label and highlights:
+        add_proposed(m, G, highlights[0], proposed_label)
+    for path, colour, dashed, label, *rest in json.loads(routes_key):
+        add_route(m, G, path, colour, dashed, label, faded=bool(rest and rest[0]))
     for edge_id, radius, colour, tooltip in json.loads(circles_key):
         e = find_edge(G, edge_id)
         if e:

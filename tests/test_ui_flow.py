@@ -31,7 +31,7 @@ def test_report_approve_confirms_obstacle_and_reroutes():
     # 1. Report Obstacle page: pick the curb sample photo, mock AI says high_curb, submit on E7.
     at = _run("2")
     at.radio(key="ro_src").set_value("Use a sample photo").run()
-    at.selectbox(key="ro_sample").set_value("curb_high_step.png").run()
+    at.selectbox(key="ro_sample").set_value("kerb_high_granite_step.jpg").run()
     assert any("Suggested type: high curb" in m.value for m in at.markdown)
     at.selectbox(key="ro_edge").set_value("E7").run()
     at.radio(key="ro_role").set_value("resident").run()
@@ -55,7 +55,9 @@ def test_report_approve_confirms_obstacle_and_reroutes():
     assert "Direct route usable" in text
     assert "E7: blocked" not in text
     assert "E7: step" not in text
-    assert not any(m.label == "Detour ratio" for m in elderly.metric)
+    metrics = {m.label: m.value for m in elderly.metric}
+    assert metrics["Distance"] == "450 m"
+    assert float(metrics["Detour ratio"].rstrip("×")) == pytest.approx(1.0)
 
     # 4. Route Planner as a wheelchair user: still detours, and the reason names the step.
     wheel = _route_page("wheelchair")
@@ -64,10 +66,6 @@ def test_report_approve_confirms_obstacle_and_reroutes():
     assert float(detour.rstrip("×")) >= 2.0
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="BUG (X2 copy): the Verification Queue flash still says the segment is 'now blocked'",
-)
 def test_approve_flash_does_not_claim_segment_is_blocked():
     store.reset_demo()
     rid = max(r["id"] for r in store.list_reports("pending") if r["edge_id"] == "E7")

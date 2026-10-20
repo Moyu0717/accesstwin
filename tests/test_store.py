@@ -51,7 +51,7 @@ def test_approved_report_confirms_obstacle_and_route_recomputes(db):
     store.set_report_status(rid, "approved")
 
     entry = store.get_overlay()["E7"]
-    assert entry["status"] != "blocked"
+    assert entry.get("status") != "blocked"  # no status written: the base status (verified_accessible) stands
     assert [o["type"] for o in entry["obstacles"]] == ["high_curb"]
     assert entry["obstacles"][0]["kind"] == "fact"
     G1 = load_graph(with_overlay=True)

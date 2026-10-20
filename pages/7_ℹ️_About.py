@@ -99,10 +99,12 @@ many people gain access to which places.**
     credits = ui.photo_credits()
     if credits:
         st.subheader("Photo credits")
-        st.caption("Third-party editorial images used with credit for a non-commercial hackathon demo; faces and "
-                   "licence plates blurred. Not licensed by AccessTwin — removed on request.")
+        st.caption("Openly licensed photos from Wikimedia Commons (CC0 / CC BY / CC BY-SA), licence checked on each "
+                   "file page. They are illustrations and do not show the fictional township. Licence plates blurred.")
         for name, c in credits.items():
-            st.markdown(f"- {c['label']} — {c['source']} ({c['url']})")
+            st.markdown(f"- **{c['label']}** — Photo: {c.get('author', c['source'])}, "
+                        f"[{c.get('licence', 'licence see source')}]({c.get('licence_url', c['url'])}) · "
+                        f"[source]({c['url']}) · changes: {c.get('changes', 'none')}")
 
     st.subheader("Team")
     st.caption("Team details to be added.")

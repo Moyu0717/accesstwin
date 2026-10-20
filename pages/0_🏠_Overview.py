@@ -21,7 +21,7 @@ from accesstwin.ui.i18n import t
 from accesstwin.ui.map_view import DETOUR_COLOUR, REFERENCE_COLOUR, show_map
 
 PAGE = "pages/0_🏠_Overview.py"
-PREVIOUS_COLOUR = "#B9B6AA"
+PREVIOUS_COLOUR = "#A8A396"
 
 
 def _set_scenario(ids: tuple) -> None:
@@ -231,8 +231,7 @@ def main() -> None:
     G = ui.graph()
     okey = ui.overlay_key()
     c = ws.ctx()
-    if c.pop("toast", None):
-        st.toast("Scenario applied — showing the simulated ramp" if c["scenario"] else "Back to baseline")
+    c.pop("toast", None)  # the simulated banner announces the change; a toast covered the Inspector header
     locs = ws.priority_locations(okey)
     if not locs:
         st.info("No priority locations: every profile reaches every destination type with the current data.")
@@ -284,9 +283,9 @@ def main() -> None:
             f"{'ramp scenario' if scenario else 'existing conditions'}</div>", unsafe_allow_html=True)
         if scenario:
             with st.container(border=True, key="ws_sim_banner"):
-                st.markdown(f"<div class='at-status sim'>SIMULATED · {ws.esc(loc.upgrade['title'])} · not built — "
+                b0, b1, b2 = st.columns([2.4, 1, 1], vertical_alignment="center")
+                b0.markdown(f"<div class='at-status sim'><b>SIMULATED</b> · {ws.esc(loc.upgrade['title'])} · not built — "
                             f"existing conditions unchanged</div>", unsafe_allow_html=True)
-                b1, b2 = st.columns(2)
                 b1.button(f"↩ {t('return_baseline')}", key="ws_return_banner", on_click=_set_scenario, args=((),),
                           use_container_width=True)
                 with b2:
@@ -306,12 +305,12 @@ def main() -> None:
             if scenario:
                 cur = cached.journey(okey, scenario, loc.origin, loc.dest, persona.key)
                 if base_r.reachable and base_r.path != cur.path:
-                    routes.append([base_r.path, PREVIOUS_COLOUR, True, f"previous detour {_fmt(base_r.length_m)}"])
-                    legend.append([f"3px dashed {PREVIOUS_COLOUR}", f"Previous detour {_fmt(base_r.length_m)}"])
+                    routes.append([base_r.path, PREVIOUS_COLOUR, True, f"Previous detour {_fmt(base_r.length_m)}", True])
+                    legend.append([f"3px dotted {PREVIOUS_COLOUR}", f"Previous detour {_fmt(base_r.length_m)}"])
                 if cur.reachable:
                     routes.append([cur.path, REFERENCE_COLOUR, False, f"Simulated route {_fmt(cur.length_m)}"])
                     legend.append([f"4px solid {REFERENCE_COLOUR}", f"Simulated route {_fmt(cur.length_m)}"])
-                legend.append([f"4px solid {REFERENCE_COLOUR}", "Proposed ramp (amber outline)"])
+                legend.append(["8px solid #EBB866", "Proposed ramp (amber halo, simulated)"])
             else:
                 ref_label = ("Shortest reference path — interrupted" if not base_r.direct_reachable
                              else "Shortest reference path")
@@ -323,11 +322,12 @@ def main() -> None:
                     legend.append([f"3px dashed {DETOUR_COLOUR}", f"Available route {_fmt(base_r.length_m)}"])
         legend += [["2px solid #A63429", "! barrier · ✖ obstruction / closure"], ["2px dashed #687064", "Unverified"],
                    ["2px dotted #A63429", "Impassable for this profile"]]
-        show_map(height=600, overlay_key=okey, persona_key=persona.key, routes_key=json.dumps(routes),
+        show_map(height=540 if scenario else 600, overlay_key=okey, persona_key=persona.key, routes_key=json.dumps(routes),
                  upgrades_key=json.dumps(list(scenario)),
                  highlight_key=json.dumps([loc.edge_id] if scenario else []),
                  selected="" if scenario else loc.edge_id,
                  selected_label=f"{loc.label} · {loc.edge_id}" if not scenario else "",
+                 proposed_label=f"Ramp proposed at {loc.edge_id} · simulated" if scenario else "",
                  street=street, legend_key=json.dumps(legend), show_ids=st.session_state.get("show_ids", False))
         if scenario:
             st.caption(f"Proposed ramp at {loc.edge_id} (amber, simulated). Same map extent as the baseline.")

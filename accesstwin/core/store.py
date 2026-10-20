@@ -262,8 +262,8 @@ def _upgrade_changes() -> dict[str, tuple[str, dict]]:
 
 # Approved report type → what it confirms (fix pack X2; documented in DECISIONS).
 OBSTACLE_RULES: dict[str, dict] = {
-    "high_curb": {"kind": "fact"},
-    "missing_ramp": {"kind": "fact"},
+    "high_curb": {"kind": "fact", "attrs": {"has_step": True}},
+    "missing_ramp": {"kind": "fact", "attrs": {"has_step": True}},
     "blocked_ramp": {"kind": "obstruction", "personas": ["wheelchair", "stroller"],
                      "text": "kerb ramp obstructed by parked vehicles"},
     "narrow_path": {"kind": "obstruction", "personas": ["wheelchair", "stroller"],
@@ -337,6 +337,8 @@ def get_overlay() -> dict[str, dict]:
         obs = list(cur.get("obstacles", []))
         if add:
             obs.append(add)
+            if add["type"] in ("high_curb", "missing_ramp") and not cur.get("curb_height_cm", 1):
+                cur.pop("curb_height_cm")  # a step reported after a repair: fall back to the surveyed height
             if add["kind"] == "inspection":
                 cur["needs_inspection"] = True
         if resolve is not None:

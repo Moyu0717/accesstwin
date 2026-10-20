@@ -99,6 +99,8 @@ a:focus-visible, button:focus-visible, [role="tab"]:focus-visible, input:focus-v
 .at-bar-track {{height:4px;background:#E6E8DD}} .at-bar-track i {{display:block;height:4px;background:#7E8C6D}}
 .at-num {{font-variant-numeric:tabular-nums;text-align:right}}
 .at-status {{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600}}
+.st-key-ws_sim_banner {{padding:6px 12px !important}}
+.st-key-ws_sim_banner .at-status {{display:block;line-height:1.45;padding:4px 0}}
 .at-status.blocked {{color:var(--state-blocked)}} .at-status.pending {{color:var(--state-pending)}}
 .at-status.verified {{color:var(--state-verified)}} .at-status.sim {{color:var(--accent-strong)}}
 .at-title {{font-size:30px;line-height:1.12;letter-spacing:-1px;font-weight:400;margin:4px 0 6px}}
@@ -107,7 +109,7 @@ a:focus-visible, button:focus-visible, [role="tab"]:focus-visible, input:focus-v
 .at-big {{font-size:24px;font-weight:400;letter-spacing:-.5px;font-variant-numeric:tabular-nums}}
 .at-big small {{font-size:13px;color:var(--text-secondary);letter-spacing:0}}
 .at-grid2 {{display:grid;grid-template-columns:1fr 1fr;gap:14px}} .at-grid2>div+div {{border-left:1px solid #E2E5D9;padding-left:14px}}
-.at-tags span {{display:inline-block;font-size:12px;padding:4px 7px;background:#EEEFE7;color:#4F5A44;border-radius:2px;margin:0 4px 4px 0}}
+.at-tags span {{display:inline-block;font-size:13px;padding:4px 7px;background:#EEEFE7;color:#3F4936;border-radius:2px;margin:0 4px 4px 0}}
 .at-kv {{display:flex;justify-content:space-between;font-size:13px;color:var(--text-secondary);margin:6px 0}}
 .at-statusbar {{display:flex;gap:18px;flex-wrap:wrap;justify-content:space-between;border-top:1px solid var(--border-default);
   background:#F6F7F0;padding:8px 6px;margin-top:10px;font-size:12px;color:var(--text-secondary)}}

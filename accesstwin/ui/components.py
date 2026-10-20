@@ -196,6 +196,8 @@ def photo_caption(filename: str) -> str:
     """Placeholders say so; third-party photos always carry their source (credits.json)."""
     credit = photo_credits().get(filename)
     if credit:
+        if credit.get("author") and credit.get("licence"):
+            return f"{credit['label']} · Photo: {credit['author']}, {credit['licence']} (Wikimedia Commons)"
         return f"{credit['label']} — source: {credit['source']}"
     label = filename.rsplit(".", 1)[0].replace("_", " ")
     return f"Illustration (placeholder): {label}" if is_placeholder_photo(filename) else label

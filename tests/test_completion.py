@@ -126,17 +126,17 @@ def test_report_page_has_an_analyse_button_per_sample_photo():
     for name in gallery:
         assert f"ro_pick_{name}" in keys, name
         assert keys[f"ro_pick_{name}"].label == "Analyse"
-    # every gallery photo that is third-party carries its source in the caption
+    # every gallery photo that is third-party carries its author and licence in the caption (credits.json v2)
     for name in gallery:
         if name in credits:
-            assert credits[name]["source"] in ui.photo_caption(name)
+            assert f"Photo: {credits[name]['author']}, {credits[name]['licence']}" in ui.photo_caption(name)
 
 
 def test_clicking_blocked_ramp_sample_shows_suggestion():
     store.reset_demo()
     at = _page("2")
-    credits = ui.photo_credits()
-    key = "ramp_blocked_car_02.jpg" if "ramp_blocked_car_02.jpg" in credits else "ramp_blocked_car.png"
+    key = "pavement_blocked_parked_cars.jpg"
+    assert key in ui.photo_credits()
     at.button(key=f"ro_pick_{key}").click().run()
     assert not at.exception
     assert any("Suggested type: blocked ramp" in m.value for m in at.markdown)
@@ -273,11 +273,6 @@ def test_work_order_verification_repairs_e7_and_keeps_status_accessible(isolated
     assert e7()["status"] == "verified_accessible"  # never "blocked" for everyone (X2)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="BUG (X2): an approved high_curb after a verified U1 repair records the obstacle but does not "
-           "restore has_step, so wheelchair routing goes through the step again",
-)
 def test_reapproved_step_after_repair_reopens_the_route(isolated_db):
     e7 = lambda: next(e for e in load_graph().edges(keys=True, data=True) if e[2] == "E7")[3]
     oid = store.add_work_order("U1")
