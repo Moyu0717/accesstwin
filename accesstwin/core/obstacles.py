@@ -29,7 +29,15 @@ PROMPT = (
 )
 
 # filename keyword -> preset Mock result (checked in order)
+# Generated stand-in images shipped with the demo; shown as "Illustration (placeholder)" until real photos land.
+PLACEHOLDER_PHOTOS = {"curb_high_step.png", "dark_path_night.png", "gravel_path_school.png",
+                      "path_crack_broken.png", "ramp_blocked_car.png"}
+
 _MOCK_PRESETS: list[tuple[tuple[str, ...], dict]] = [
+    # Negative example first: "ok_ramp_*" must not match the "ramp" rule below.
+    (("ok_", "good_"), {"obstacle_type": "none", "severity": "low", "affected_personas": [], "confidence": 0.7,
+                        "visible_evidence": "Ramp / path appears usable (no obstacle recognised).",
+                        "needs_onsite_measurement": ["slope"]}),
     (("blocked",), {"obstacle_type": "blocked_ramp", "severity": "high", "affected_personas": ["wheelchair", "stroller"],
                     "confidence": 0.78, "visible_evidence": "Kerb ramp appears obstructed (e.g. parked vehicle or bins).",
                     "needs_onsite_measurement": ["clear width"]}),
@@ -50,6 +58,13 @@ _MOCK_PRESETS: list[tuple[tuple[str, ...], dict]] = [
     (("narrow",), {"obstacle_type": "narrow_path", "severity": "medium", "affected_personas": ["wheelchair", "stroller"],
                    "confidence": 0.66, "visible_evidence": "Path narrowed by an obstruction.",
                    "needs_onsite_measurement": ["clear width"]}),
+    (("gravel",), {"obstacle_type": "broken_surface", "severity": "medium", "affected_personas": ["wheelchair", "stroller"],
+                   "confidence": 0.68, "visible_evidence": "Loose gravel surface — hard to roll on.",
+                   "needs_onsite_measurement": []}),
+    (("dark", "night", "unlit"), {"obstacle_type": "other", "severity": "medium",
+                                  "affected_personas": ["elderly", "visually_impaired"], "confidence": 0.6,
+                                  "visible_evidence": "Path looks poorly lit at night (safety concern).",
+                                  "needs_onsite_measurement": ["lighting level"]}),
     (("tactile",), {"obstacle_type": "no_tactile", "severity": "low", "affected_personas": ["visually_impaired"],
                     "confidence": 0.6, "visible_evidence": "No tactile paving at the crossing.",
                     "needs_onsite_measurement": []}),

@@ -150,6 +150,18 @@ def card(title: str, body: str, kind: str = "") -> None:
     )
 
 
+def photo_caption(filename: str) -> str:
+    """Bundled photos are generated placeholders until real site photos replace them (P0-2)."""
+    label = filename.rsplit(".", 1)[0].replace("_", " ")
+    return f"Illustration (placeholder): {label}" if is_placeholder_photo(filename) else label
+
+
+def is_placeholder_photo(filename: str) -> bool:
+    from accesstwin.core.obstacles import PLACEHOLDER_PHOTOS
+
+    return filename in PLACEHOLDER_PHOTOS
+
+
 def fmt_m(metres: float) -> str:
     return f"{metres / 1000:.1f} km" if metres >= 1000 else f"{metres:.0f} m"
 

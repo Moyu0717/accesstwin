@@ -1,3 +1,4 @@
+import hashlib
 import uuid
 from pathlib import Path
 
@@ -21,30 +22,38 @@ def main() -> None:
     st.caption("The AI result is only a **suggestion pending review**. The map changes only after a guard or admin "
                "approves the report in the Verification Queue.")
 
-    src = st.radio("Photo source", ["Upload a photo", "Use a sample photo"], horizontal=True, key="ro_src")
+    samples = sorted(p.name for p in config.PHOTOS_DIR.glob("*") if p.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"})
+    src = st.radio("Photo source", ["Use a sample photo", "Upload a photo"], horizontal=True, key="ro_src")
     image_bytes, filename, mime = None, None, "image/png"
-    if src == "Upload a photo":
-        up = st.file_uploader("Photo of the obstacle", type=["png", "jpg", "jpeg", "webp"], key="ro_upload")
-        if up is not None:
-            image_bytes, filename, mime = up.getvalue(), up.name, up.type or "image/jpeg"
-    else:
-        samples = sorted(p.name for p in config.PHOTOS_DIR.glob("*") if p.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"})
+    if src == "Use a sample photo":
         if not samples:
             st.warning("No sample photos found in data/photos/.")
         else:
-            filename = st.selectbox("Sample photo", samples, key="ro_sample")
+            st.markdown("**Try a sample photo** — one click analyses it.")
+            cols = st.columns(min(len(samples), 5))
+            for i, name in enumerate(samples):
+                with cols[i % len(cols)]:
+                    st.image(str(config.PHOTOS_DIR / name), caption=ui.photo_caption(name), width="stretch")
+                    if st.button("Analyse", key=f"ro_pick_{name}", help=f"Analyse {name}"):
+                        st.session_state["ro_sample"] = name
+            filename = st.selectbox("Selected sample photo", samples, key="ro_sample")
             image_bytes = (config.PHOTOS_DIR / filename).read_bytes()
             mime = "image/png" if filename.lower().endswith(".png") else "image/jpeg"
+    else:
+        up = st.file_uploader("Photo of the obstacle", type=["png", "jpg", "jpeg", "webp"], key="ro_upload")
+        if up is not None:
+            image_bytes, filename, mime = up.getvalue(), up.name, up.type or "image/jpeg"
 
     if not image_bytes:
-        st.info("Upload or pick a photo to get an AI suggestion.")
+        st.info("Pick a sample photo or upload your own to get an AI suggestion.")
         ui.disclaimer()
         st.stop()
 
+    is_upload = src == "Upload a photo"
     col_img, col_ai = st.columns([2, 3])
-    col_img.image(image_bytes, caption=filename, width="stretch")
+    col_img.image(image_bytes, caption=filename if is_upload else ui.photo_caption(filename), width="stretch")
 
-    cache_key = f"ro_ai::{filename}::{len(image_bytes)}"
+    cache_key = f"ro_ai::{hashlib.sha256(image_bytes).hexdigest()}::{filename}"
     if cache_key not in st.session_state:
         with st.spinner("Analysing photo…"):
             st.session_state[cache_key] = analyze_photo(image_bytes, filename, mime)
@@ -52,21 +61,35 @@ def main() -> None:
 
     with col_ai:
         source = ai.get("source", "mock")
+        # An upload on the demo classifier is only a filename guess — never present it as a real result.
+        demo_guess = is_upload and source == "mock"
         badge = f"AI: Groq · {ai.get('model', '')}" if source == "groq" else (
             "AI: could not parse — choose manually" if source == "manual_required" else "AI: Demo classifier (Mock)")
         st.markdown(f"**AI suggestion** · `{badge}`")
         if ai.get("notice"):
             st.warning(ai["notice"])
-        if source == "manual_required":
-            ai["obstacle_type"] = st.selectbox("Obstacle type", OBSTACLE_TYPES, index=OBSTACLE_TYPES.index("other"), key="ro_manual_type")
-            ai["severity"] = st.selectbox("Severity", SEVERITIES, index=1, key="ro_manual_sev")
-            ai["affected_personas"] = st.multiselect("Affected personas", PERSONA_KEYS, key="ro_manual_personas")
-        st.markdown(f"#### Suggested type: {ai['obstacle_type'].replace('_', ' ')}")
-        b, c = st.columns(2)
-        b.metric("Severity", ai["severity"])
-        c.metric("Confidence", f"{float(ai.get('confidence', 0)):.0%}")
+        if demo_guess:
+            ui.card("🧪 Demo classifier", "Real AI analysis (Groq) runs on the hosted version with an API key. "
+                    "In this demo your own photo is not analysed — please choose the category below.", "warn")
+            ai.update({"obstacle_type": "other", "confidence": 0.0, "visible_evidence": "",
+                       "affected_personas": [], "needs_onsite_measurement": []})
+        with st.expander("✏️ Confirm or correct the category", expanded=demo_guess or source == "manual_required"):
+            ai["obstacle_type"] = st.selectbox("Obstacle type", OBSTACLE_TYPES, key=f"ro_manual_type_{cache_key[7:19]}",
+                                               index=OBSTACLE_TYPES.index(ai.get("obstacle_type", "other")))
+            ai["severity"] = st.selectbox("Severity", SEVERITIES, key=f"ro_manual_sev_{cache_key[7:19]}",
+                                          index=SEVERITIES.index(ai.get("severity", "medium")))
+            ai["affected_personas"] = st.multiselect("Affected personas", PERSONA_KEYS, key=f"ro_manual_personas_{cache_key[7:19]}",
+                                                     default=ai.get("affected_personas", []),
+                                                     format_func=ui.persona_label)
+        if demo_guess:
+            st.markdown(f"#### Category (your choice): {ai['obstacle_type'].replace('_', ' ')}")
+        else:
+            st.markdown(f"#### Suggested type: {ai['obstacle_type'].replace('_', ' ')}")
+            b, c = st.columns(2)
+            b.metric("Severity", ai["severity"])
+            c.metric("Confidence", f"{float(ai.get('confidence', 0)):.0%}")
+            st.write("**Visible evidence:** " + (ai.get("visible_evidence") or "—"))
         st.write("**Affected personas:** " + (", ".join(ui.persona_label(p) for p in ai.get("affected_personas", [])) or "—"))
-        st.write("**Visible evidence:** " + (ai.get("visible_evidence") or "—"))
         needs = ai.get("needs_onsite_measurement") or []
         if needs:
             st.warning("📏 Needs on-site measurement: " + ", ".join(needs))
