@@ -1,8 +1,9 @@
 [theme]
-primaryColor = "#0F766E"
-backgroundColor = "#FFFFFF"
-secondaryBackgroundColor = "#F0F7F6"
-textColor = "#1F2937"
+# Mirrors accesstwin/ui/theme.py TOKENS (V2 architectural direction).
+primaryColor = "#8E4326"
+backgroundColor = "#F7F7F2"
+secondaryBackgroundColor = "#FBFBF8"
+textColor = "#242824"
 font = "sans serif"
 
 [server]

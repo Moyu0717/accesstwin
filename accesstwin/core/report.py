@@ -35,7 +35,7 @@ def report_stats(reports: list[dict]) -> dict:
 
 def brief_html(
     G: nx.MultiGraph, personas: dict[str, Persona], scores: ScoreResult, ranking: pd.DataFrame,
-    demand: list[EdgeDemand], reports: list[dict], mode: str = "operate", bundle=None,
+    demand: list[EdgeDemand], reports: list[dict], mode: str = "operate", bundle=None, scenario: dict | None = None,
 ) -> str:
     stats = report_stats(reports)
     title = "Pre-construction Accessibility Review" if mode == "design" else "Accessibility Planning Brief"
@@ -73,14 +73,15 @@ th{{background:#F0F7F6}} .big{{font-size:44px;font-weight:700;color:#0F766E}} .m
 </style></head><body>
 <h1>{_e(title)}</h1>
 <div class="muted">{_e(G.graph.get('meta', {}).get('name', 'Demo Township'))} — fictional demo layout · generated {datetime.now():%Y-%m-%d %H:%M} · mode: {_e(mode)}</div>
-<h2>Accessibility Gap Index</h2>
+<h2>Access Score (higher is better)</h2>
 <div class="big">{scores.index:.0f}<span style="font-size:20px"> / 100</span></div>
 <table><tr><th>Persona</th><th>Index</th></tr>{persona_rows}</table>
 <h3>Gap matrix (residential × persona, 0–100)</h3>
 <table><tr><th>Residential</th>{gap_head}</tr>{gap_rows}</table>
+{_scenario_html(scenario)}
 {_bundle_html(bundle)}
-<h2>Top 5 recommended upgrades (ROI = benefit ÷ cost tier)</h2>
-<table><tr><th>Rank</th><th>Upgrade</th><th>Cost tier</th><th>Δ index</th><th>New trips</th><th>Beneficiaries</th><th>ROI</th></tr>{up_rows}</table>
+<h2>Top 5 recommended upgrades (upgrade priority score = benefit ÷ cost tier)</h2>
+<table><tr><th>Rank</th><th>Upgrade</th><th>Cost tier</th><th>Δ index</th><th>Newly reachable (modelled)</th><th>Estimated residents (model)</th><th>Priority score</th></tr>{up_rows}</table>
 <h2>Suppressed-demand segments</h2>
 <p class="muted">Observed CCTV footfall far below the gravity-model expectation on a route with a barrier: people may not walk here because they can't. Edges without CCTV are not inferred.</p>
 <table><tr><th>Edge</th><th>Camera</th><th>Observed</th><th>Expected</th><th>Ratio</th><th>Barriers</th></tr>{sup_rows}</table>
@@ -89,6 +90,21 @@ th{{background:#F0F7F6}} .big{{font-size:44px;font-weight:700;color:#0F766E}} .m
 <div class="disc"><b>Disclaimer.</b> {_e(DISCLAIMER)}</div>
 <p class="muted">Print this page to PDF from your browser (Ctrl+P) to share it.</p>
 </body></html>"""
+
+
+def _scenario_html(sc: dict | None) -> str:
+    """Study section for the same Baseline / Scenario snapshot shown on the Compare page (V2 Deliver)."""
+    if not sc:
+        return ""
+    rows = "".join(f"<tr><td>{_e(r['assessment'])}</td><td>{_e(r['baseline'])}</td><td>{_e(r['scenario'])}</td>"
+                   f"<td>{_e(r['change'])}</td><td>{_e(r['source'])}</td></tr>" for r in sc.get("rows", []))
+    steps = "".join(f"<li><b>{_e(h)}</b> — {_e(b)}</li>" for h, b in sc.get("steps", []))
+    table = (f"<table><tr><th>Assessment</th><th>Baseline</th><th>Scenario (simulated)</th><th>Change</th>"
+             f"<th>Source</th></tr>{rows}</table>") if rows else "<p>Not assessed — confirm site conditions first.</p>"
+    return (f"<h2>Study: {_e(sc.get('location', ''))}</h2>"
+            f"<p>Proposed change: <b>{_e(sc.get('upgrade') or 'none yet')}</b> · data version {_e(sc.get('version', ''))} · "
+            f"<b>Simulated</b> values on <b>synthetic</b> demo data — the recorded network is unchanged.</p>{table}"
+            f"<h3>Delivery steps</h3><ol>{steps}</ol>")
 
 
 def _bundle_html(bundle) -> str:

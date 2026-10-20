@@ -1,75 +1,205 @@
-"""Overview — the default page (Accessibility Gap Index, map, critical gaps)."""
+"""Network — the V2 planning workspace (priority locations · plan-view map · Inspector).
+
+Everything shown is computed by the core through ui.cached / ui.workspace. "Preview ramp" only changes a
+session-only scenario; nothing is written to the database and actual routes are unchanged.
+"""
+import json
+from types import SimpleNamespace
+
 import streamlit as st
 
-from accesstwin.core import store
 from accesstwin.core.graph import node_name
-from accesstwin.core.scoring import critical_gaps
 from accesstwin.ui import cached
 from accesstwin.ui import components as ui
 from accesstwin.ui import guide
+from accesstwin.ui import workspace as ws
 from accesstwin.ui.i18n import t
-from accesstwin.ui.map_view import legend, pending_key, show_map
+from accesstwin.ui.map_view import DETOUR_COLOUR, REFERENCE_COLOUR, show_map
+
+PAGE = "pages/0_🏠_Overview.py"
+
+
+def _set_scenario(ids: tuple) -> None:
+    ws.ctx()["scenario"] = ids
+
+
+def _fmt_len(m: float) -> tuple[str, str]:
+    return (f"{m / 1000:.1f}", "km") if m >= 1000 else (f"{m:.0f}", "m")
+
+
+def journey_section(loc, okey: str, scenario: tuple, persona) -> tuple:
+    """Shortest reference vs available route for the selected profile (baseline or scenario)."""
+    base = cached.journey(okey, (), loc.origin, loc.dest, persona.key)
+    cur = cached.journey(okey, scenario, loc.origin, loc.dest, persona.key) if scenario else base
+    ref_v, ref_u = _fmt_len(cur.baseline_length_m)
+    if cur.reachable:
+        av_v, av_u = _fmt_len(cur.length_m)
+    else:
+        av_v, av_u = "—", ""
+    ref_note = (t("interrupted") if not cur.direct_reachable else
+                ("Available in simulation" if scenario else "Usable for this profile"))
+    av_note = ("proposed direct route" if scenario and cur.direct_reachable else
+               (f"{cur.detour_ratio:.1f}× the reference" if cur.reachable and cur.detour_ratio else "No passable route"))
+    st.markdown(
+        f"<div class='at-section'><div class='at-eyebrow'>{ws.esc(ui.persona_short(persona.key))} "
+        f"{ws.esc(t('journey_head'))}</div><div class='at-grid2'>"
+        f"<div><div class='at-muted'>{ws.esc(t('shortest_reference'))}</div>"
+        f"<div class='at-big'>{ref_v} <small>{ref_u}</small></div>"
+        f"<div class='at-status {'blocked' if not cur.direct_reachable else 'verified'}' style='font-weight:500'>"
+        f"{'✖ ' if not cur.direct_reachable else '✓ '}{ws.esc(ref_note)}</div></div>"
+        f"<div><div class='at-muted'>{ws.esc(t('available_route'))}</div>"
+        f"<div class='at-big'>{av_v} <small>{av_u}</small></div><div class='at-muted'>{ws.esc(av_note)}</div></div>"
+        f"</div></div>", unsafe_allow_html=True)
+    return base, cur
+
+
+def inspector(loc, okey: str, scenario: tuple, persona, G) -> None:
+    st.markdown("<span class='at-ws-inspector'></span>", unsafe_allow_html=True)
+    st.markdown(f"<div class='at-eyebrow' style='display:flex;justify-content:space-between'>"
+                f"<span>{ws.esc(t('location_details'))}</span><span>{ws.esc(loc.edge_id)}</span></div>",
+                unsafe_allow_html=True)
+    action_box(loc, scenario, "top")
+    kind_cls = {"barrier": "blocked", "inspection": "pending", "blocked": "blocked"}[loc.kind]
+    status = "Proposed scenario" if scenario else loc.status_text
+    mark = "◆" if scenario else {"barrier": "●", "inspection": "○", "blocked": "✖"}[loc.kind]
+    route_line = (f"{node_name(G, loc.origin)} → {node_name(G, loc.dest)}" if loc.origin and loc.dest else
+                  f"{node_name(G, ws.find_edge(G, loc.edge_id)['from'])} → {node_name(G, ws.find_edge(G, loc.edge_id)['to'])}")
+    st.markdown(f"<div class='at-status {'sim' if scenario else kind_cls}'>{mark} {ws.esc(status)}</div>"
+                f"<div class='at-title'>{ws.esc(loc.label)}</div><div class='at-sub'>{ws.esc(route_line)}</div>",
+                unsafe_allow_html=True)
+    e = ws.find_edge(G, loc.edge_id)
+    if loc.kind == "barrier" and e.get("has_step"):
+        st.markdown(ws.step_section_svg(float(e.get("curb_height_cm", 0)), ramp=bool(scenario)), unsafe_allow_html=True)
+    st.markdown(f"<div class='at-section'><div class='at-eyebrow'>{ws.esc(t('existing_condition'))}</div>"
+                f"<div class='at-big'>{ws.esc(loc.condition_value)} <small>{ws.esc(loc.condition_unit)}</small></div>"
+                f"<div class='at-muted'>{ws.esc(loc.condition_text)}</div></div>", unsafe_allow_html=True)
+    if loc.kind == "inspection" or not (loc.origin and loc.dest):
+        st.markdown(
+            f"<div class='at-section'><div class='at-eyebrow'>{ws.esc(ui.persona_short(persona.key))} "
+            f"{ws.esc(t('journey_head'))}</div><div class='at-grid2'>"
+            f"<div><div class='at-muted'>{ws.esc(t('shortest_reference'))}</div><div class='at-big'>—</div>"
+            f"<div class='at-muted'>{ws.esc(t('not_assessed'))}</div></div>"
+            f"<div><div class='at-muted'>{ws.esc(t('available_route'))}</div><div class='at-big'>—</div>"
+            f"<div class='at-muted'>{ws.esc(t('not_assessed'))}</div></div></div></div>"
+            f"<div class='at-section'><div class='at-eyebrow'>Profile impact</div>"
+            f"<div class='at-muted'>Profile impact requires verification — {ws.esc(t('not_assessed'))}.</div></div>",
+            unsafe_allow_html=True)
+    else:
+        journey_section(loc, okey, scenario, persona)
+        tags = "".join(f"<span>{ws.esc(ui.persona_short(k))}</span>" for k in loc.affected) or "<span>None</span>"
+        st.markdown(f"<div class='at-section'><div class='at-eyebrow'>{ws.esc(t('affected_profiles'))}</div>"
+                    f"<div class='at-tags'>{tags}</div></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='at-section'><div class='at-eyebrow'>{ws.esc(t('evidence_origin'))}</div>"
+                f"<div class='at-kv'><span>{ws.esc(t('condition_record'))}</span><b><span class='at-chip syn'>Synthetic</span></b></div>"
+                f"<div class='at-kv'><span>Record status</span><span>{ws.esc(e.get('status', '').replace('_', ' '))}</span></div>"
+                f"<div class='at-muted' style='font-size:12px'>A recorded status is not a guarantee that every profile can pass.</div>"
+                f"</div>", unsafe_allow_html=True)
+    action_box(loc, scenario, "bottom")
+
+
+def action_box(loc, scenario: tuple, where: str) -> None:
+    """Main action at the top of the Inspector and repeated at the end (plan §4.2)."""
+    st.markdown(f"<div class='at-section' style='border-top:none;padding-top:4px'><div class='at-eyebrow'>"
+                f"{ws.esc(t('next_action'))}</div></div>", unsafe_allow_html=True)
+    if loc.upgrade:
+        up = loc.upgrade
+        st.markdown(f"<div class='at-kv'><b style='color:var(--text-primary)'>{ws.esc(up['title'])}</b>"
+                    f"<span>{ws.esc(up['cost_tier'].capitalize())} cost tier</span></div>", unsafe_allow_html=True)
+        if scenario:
+            st.button(f"↩ {t('return_baseline')}", key=f"ws_return_{where}", type="primary", use_container_width=True,
+                      on_click=_set_scenario, args=((),))
+        else:
+            st.button(f"{t('preview_ramp') if 'ramp' in up['title'].lower() else 'Preview upgrade'} ↗",
+                      key=f"ws_preview_{where}", type="primary", use_container_width=True,
+                      on_click=_set_scenario, args=((up["id"],),))
+        st.caption(t("sim_only"))
+    else:
+        st.markdown(f"<div class='at-kv'><b style='color:var(--text-primary)'>{ws.esc(t('confirm_site'))}</b>"
+                    f"<span>{ws.esc(t('not_estimated'))}</span></div>", unsafe_allow_html=True)
+        if where == "top":
+            ws._page_link("pages/3_✅_Verification_Queue.py", f"{t('open_queue')} ↗")
+        st.caption("Verify the record before proposing a change.")
 
 
 def main() -> None:
     ui.setup_page(t("home_title"), "♿")
     persona = ui.sidebar()
+    ws.project_bar("network")
+    guide.panel(PAGE)
     G = ui.graph()
-    P = ui.personas()
     okey = ui.overlay_key()
-    s = cached.scores(okey)
+    c = ws.ctx()
+    locs = ws.priority_locations(okey)
+    if not locs:
+        st.info("No priority locations: every profile reaches every destination type with the current data.")
+        ui.disclaimer()
+        return
+    ids = [x.edge_id for x in locs]
+    if c["segment"] not in ids:
+        c["segment"] = ids[0]
+    loc = ws.find_location(okey, c["segment"])
+    scenario = tuple(c["scenario"]) if loc.upgrade and tuple(c["scenario"]) == (loc.upgrade["id"],) else ()
+    if c["scenario"] and not scenario:
+        c["scenario"] = ()
 
-    st.title(f"♿ {t('app_title')} — {t('home_title')}")
-
-    guide.panel("pages/0_🏠_Overview.py")
-    if not guide.active():
-        g1, g2 = st.columns([1, 3])
-        if g1.button(t("guide_start"), key="guide_start", type="primary",
-                     help="A 5-step tour of the whole demo. Exit any time."):
-            guide.start()
-            st.rerun()
-        g2.caption("New here? The guided demo walks you through the problem, the evidence, the decision and the "
-                   "pre-construction review in about 3 minutes.")
-    st.markdown(f"**{t('tagline')}**")
-    st.caption(t("fictional"))
-
-    top, cards = st.columns([1, 3])
-    with top:
-        st.metric("Gap Index", f"{s.index:.0f} / 100",
-                  help="Weighted by population × vulnerable share × persona equity weight. 100 = every resident can reach "
-                       "every key destination directly within a comfortable distance.")
-        st.caption("“A path on the map doesn’t mean you can get there.”")
-    with cards:
-        cols = st.columns(len(P))
-        for col, (key, p) in zip(cols, P.items()):
-            col.metric(ui.persona_short(key), f"{s.persona_index[key]:.0f}", help=p.label)
-        st.caption(t("persona_assumption"))
-
-    left, right = st.columns([3, 2])
+    left, centre, right = st.columns([1, 3.2, 1.3], gap="small")
     with left:
-        show_map(height=480, overlay_key=okey, persona_key=persona.key,
-                 pending_key=pending_key(store.list_reports("pending")), show_ids=st.session_state.get("show_ids", False))
-        st.caption(legend())
-        st.caption(t("unverified_notice"))
+        st.markdown(f"<div class='at-eyebrow'>{ws.esc(t('network_study'))}</div>"
+                    f"<div style='font-size:22px;font-weight:500;letter-spacing:-.6px'>{ws.esc(t('assessment_title'))}</div>"
+                    f"<div class='at-muted' style='margin:4px 0 10px'>{ws.esc(t('assessment_sub'))}</div>",
+                    unsafe_allow_html=True)
+        by_id = {x.edge_id: x for x in locs}
+        st.radio(t("priority_locations"), ids, key="ws_segment", index=ids.index(c["segment"]),
+                 format_func=lambda i: f"{ids.index(i) + 1:02d} · {by_id[i].label} — {i} · {by_id[i].status_text}",
+                 on_change=lambda: c.update(segment=st.session_state["ws_segment"], scenario=()))
+        st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+        base = cached.scores(okey)
+        if scenario:
+            d, _ = cached.scenario(okey, scenario)
+            ws.score_block(SimpleNamespace(index=d.index_after, persona_index=d.persona_after), "Simulated",
+                           delta=d.index_delta)
+        else:
+            ws.score_block(base, "Baseline")
+        if not guide.active():
+            if st.button(t("guide_start"), key="guide_start", help="A 5-step tour of the whole demo. Exit any time."):
+                guide.start()
+                st.rerun()
+
+    with centre:
+        st.markdown("<span class='at-ws-map'></span>", unsafe_allow_html=True)
+        h1, h2 = st.columns([3, 2], vertical_alignment="bottom")
+        with h1:
+            st.markdown("<div class='at-eyebrow'>Demo Township / Access network</div>", unsafe_allow_html=True)
+            st.markdown(f"## {loc.label} · {'ramp scenario' if scenario else 'existing conditions'}")
+        with h2:
+            st.markdown(f"<div style='text-align:right'><span class='at-chip {'sim' if scenario else ''}'>"
+                        f"{'Simulated · scenario' if scenario else 'Baseline'}</span> "
+                        f"<span class='at-chip syn'>Synthetic</span></div>", unsafe_allow_html=True)
+        street = st.toggle(t("street_map"), key="ws_street", value=False,
+                           help="Optional OpenStreetMap background. The default plan view needs no tiles.")
+        routes, legend = [], []
+        if loc.origin and loc.dest:
+            cur = cached.journey(okey, scenario, loc.origin, loc.dest, persona.key)
+            ref_label = ("Shortest reference path — interrupted" if not cur.direct_reachable
+                         else "Shortest reference path")
+            routes.append([cur.baseline_path, REFERENCE_COLOUR, False, ref_label])
+            legend.append([f"3px solid {REFERENCE_COLOUR}", ref_label])
+            if cur.reachable and cur.path != cur.baseline_path:
+                routes.append([cur.path, DETOUR_COLOUR, True, f"Accessible detour ({ui.persona_short(persona.key)})"])
+                legend.append([f"3px dashed {DETOUR_COLOUR}", "Accessible detour"])
+        legend.append(["2px solid #A63429", "! Barrier / ✖ blocked"])
+        legend.append(["2px dashed #687064", "Unverified"])
+        show_map(height=560, overlay_key=okey, persona_key=persona.key, routes_key=json.dumps(routes),
+                 upgrades_key=json.dumps(list(scenario)), selected=loc.edge_id,
+                 selected_label=f"{loc.label} · {loc.edge_id}", street=street, legend_key=json.dumps(legend),
+                 show_ids=st.session_state.get("show_ids", False))
+        st.caption("Fictional layout · not to scale. The list on the left is the equivalent of the map — "
+                   "no hover needed. Hover a line for its recorded attributes.")
+
     with right:
-        st.subheader("🚧 Top 3 critical gaps")
-        for i, g in enumerate(critical_gaps(s, G, P, top=3), 1):
-            p = g["pair"]
-            status = "unreachable" if p.reach == 0 else (
-                "over comfortable distance" if p.reach < 1 else f"{p.detour_ratio:.1f}× detour")
-            why = p.reason or "No passable path."
-            ui.card(f"{i}. {ui.persona_label(p.persona)} · {node_name(G, p.residential)} → {p.category.replace('_', ' ')}",
-                    f"<b>{status}</b> (score {p.score * 100:.0f}/100)<br><span class='at-muted'>{why}</span>", "bad")
-        st.markdown("#### ▶️ Start the demo")
-        ui.page_link("pages/1_🧭_Route_Planner.py", label="1 · Route Planner — same trip, different personas", icon="🧭")
-        ui.page_link("pages/2_📸_Report_Obstacle.py", label="2 · Report Obstacle → Verification Queue — evidence", icon="📸")
-        ui.page_link("pages/4_🎥_Footfall_Analytics.py", label="3 · Footfall Analytics — anonymous counts", icon="🎥")
-        ui.page_link("pages/5_🏗️_Upgrade_Simulator.py", label="4 · Upgrade Simulator — what to fix first", icon="🏗️")
-        ui.page_link("pages/6_📊_Planner_Dashboard.py", label="5 · Planner Dashboard — suppressed demand & Planning Brief", icon="📊")
+        inspector(loc, okey, scenario, persona, G)
 
-    with st.expander("Gap matrix (residential × persona, 0–100)"):
-        st.dataframe(s.gap_matrix(G), width="stretch")
-
+    ws.status_bar(bool(scenario), cached.data_version(okey))
     ui.disclaimer()
 
 

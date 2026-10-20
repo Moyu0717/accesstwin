@@ -51,7 +51,7 @@ def draft_network_review() -> None:
     s = compute_scores(G, P, include_unverified=True)
     st.success(f"{name}: {len(data['nodes'])} nodes, {len(data['edges'])} segments — valid.")
     cols = st.columns(len(P) + 1)
-    cols[0].metric("Draft Gap Index", f"{s.index:.0f} / 100")
+    cols[0].metric("Draft Access Score", f"{s.index:.0f} / 100")
     for col, (k, v) in zip(cols[1:], s.persona_index.items()):
         col.metric(ui.persona_short(k), f"{v:.0f}")
     st.markdown("**Critical gaps to fix on the drawing:**")
@@ -147,7 +147,7 @@ def main() -> None:
     sup = [d for d in demand if d.suppressed]
 
     k1, k2, k3, k4 = st.columns(4)
-    k1.metric("Gap Index", f"{scores.index:.0f} / 100")
+    k1.metric("Access Score", f"{scores.index:.0f} / 100")
     k2.metric("Suppressed-demand segments", len(sup))
     k3.metric("Open reports", sum(1 for r in reports if r["status"] == "pending"))
     k4.metric("Work orders", len(store.list_work_orders()))

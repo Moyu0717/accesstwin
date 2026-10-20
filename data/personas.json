@@ -15,7 +15,7 @@
     "equity_weight": 1.6
   },
   "elderly": {
-    "label": "Elderly",
+    "label": "Older adult",
     "allow_step": true,
     "max_curb_cm": 15,
     "max_slope_pct": 10,
@@ -44,7 +44,7 @@
     "equity_weight": 1.2
   },
   "visually_impaired": {
-    "label": "Visually impaired",
+    "label": "Low vision",
     "allow_step": true,
     "max_curb_cm": 15,
     "max_slope_pct": 12,

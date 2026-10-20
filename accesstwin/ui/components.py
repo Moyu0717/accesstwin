@@ -19,30 +19,21 @@ DEMAND_COLUMNS = {
     "status": st.column_config.TextColumn("status", width="large"),
     "barriers on route": st.column_config.TextColumn("barriers on route", width="medium"),
 }
-PERSONA_SHORT = {"wheelchair": "Wheelchair", "elderly": "Elderly", "stroller": "Stroller", "visually_impaired": "Visually impaired"}
+PERSONA_SHORT = {"wheelchair": "Wheelchair", "elderly": "Older adult", "stroller": "Stroller", "visually_impaired": "Low vision"}
 
 
 def setup_page(title: str, icon: str = "♿", page_config_done: bool = False) -> None:
     """Page config (unless the caller already set it to paint something instantly), DB init and CSS."""
     if not page_config_done:
-        st.set_page_config(page_title=f"{title} · AccessTwin", page_icon=icon, layout="wide")
+        st.set_page_config(page_title=f"{title} · AccessTwin", page_icon=icon, layout="wide",
+                           initial_sidebar_state="collapsed")
     store.init_db()
     from accesstwin.ui import guide  # local import: guide imports this module's siblings only
 
     guide.apply_pending()
-    st.markdown(
-        """
-        <style>
-        .at-card {border:1px solid #D1E7E4; border-radius:12px; padding:14px 16px; background:#F7FBFA; margin-bottom:10px;}
-        .at-bad {border-color:#FCA5A5; background:#FEF2F2;}
-        .at-good {border-color:#86EFAC; background:#F0FDF4;}
-        .at-warn {border-color:#FCD34D; background:#FFFBEB;}
-        .at-muted {color:#4B5563; font-size:0.95rem;}
-        .at-badge {display:inline-block; padding:2px 10px; border-radius:999px; font-size:0.78rem; font-weight:600;}
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
+    from accesstwin.ui.theme import css
+
+    st.markdown(css(), unsafe_allow_html=True)
 
 
 @st.cache_data
@@ -151,14 +142,36 @@ def disclaimer() -> None:
 
 
 def card(title: str, body: str, kind: str = "") -> None:
+    """Card with an escaped title. `body` may contain trusted markup — escape any data/user text with esc()."""
     st.markdown(
-        f"<div class='at-card {('at-' + kind) if kind else ''}'><b>{title}</b><br>{body}</div>",
+        f"<div class='at-card {('at-' + kind) if kind else ''}'><b>{esc(title)}</b><br>{body}</div>",
         unsafe_allow_html=True,
     )
 
 
+def esc(x) -> str:
+    """HTML-escape data or user text before it goes into unsafe_allow_html markup (plan §7.1)."""
+    import html
+
+    return html.escape(str(x), quote=True)
+
+
+def photo_credits() -> dict:
+    """data/photos/credits.json (third-party photos: label, source, url), if present."""
+    import json
+
+    try:
+        with open(config.PHOTOS_DIR / "credits.json", encoding="utf-8") as f:
+            return json.load(f).get("photos", {})
+    except (OSError, ValueError):
+        return {}
+
+
 def photo_caption(filename: str) -> str:
-    """Bundled photos are generated placeholders until real site photos replace them (P0-2)."""
+    """Placeholders say so; third-party photos always carry their source (credits.json)."""
+    credit = photo_credits().get(filename)
+    if credit:
+        return f"{credit['label']} — source: {credit['source']}"
     label = filename.rsplit(".", 1)[0].replace("_", " ")
     return f"Illustration (placeholder): {label}" if is_placeholder_photo(filename) else label
 
@@ -192,9 +205,9 @@ def bundle_card(b, key_prefix: str = "bundle", allow_apply: bool = False) -> Non
         st.caption(f"Greedy by priority score within a budget of {b.budget:g} cost-weight units "
                    f"(low 1 · medium 2.5 · high 5); this package uses {b.cost_weight:g}. Relative tiers only — no RM costs.")
         m1, m2, m3, m4 = st.columns(4)
-        m1.metric("Package: township index", f"{d.index_after:.1f}", f"{d.index_delta:+.1f} (from {d.index_before:.1f})")
-        m2.metric("Package: new trips", len(d.newly_reachable), help="Resident–persona–destination trips that become practical")
-        m3.metric("Est. beneficiaries", f"{d.beneficiaries:.0f}", help="population × vulnerable share (model estimate)")
+        m1.metric("Package: Access Score", f"{d.index_after:.1f}", f"{d.index_delta:+.1f} (from {d.index_before:.1f})")
+        m2.metric("Package: newly reachable (modelled)", len(d.newly_reachable), help="Resident–persona–destination trips that become practical")
+        m3.metric("Estimated residents (model)", f"{d.beneficiaries:.0f}", help="population × vulnerable share (model estimate)")
         m4.metric("Wheelchair index", f"{d.persona_after.get('wheelchair', 0):.0f}",
                   f"{d.persona_delta().get('wheelchair', 0):+.1f}")
         st.caption("Estimated beneficiaries by persona: " + ", ".join(

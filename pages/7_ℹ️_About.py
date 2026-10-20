@@ -14,7 +14,7 @@ digraph G {
   rep  [label="Resident & guard\\nobstacle reports\\n(AI suggests, people verify)"];
   net  [label="Walkway network\\n(segments + attributes)"];
   route [label="Persona routing\\nwheelchair · elderly ·\\nstroller · visually impaired"];
-  gap  [label="Accessibility\\nGap Index (0–100)"];
+  gap  [label="Access Score\\n(0–100, higher is better)"];
   sup  [label="Suppressed demand\\n(people may not walk\\nhere because they can't)"];
   roi  [label="Upgrade ROI\\nbenefit ÷ cost tier"];
   wo   [label="Work orders →\\nfix → verify on site"];
@@ -47,7 +47,7 @@ many people gain access to which places.**
         st.graphviz_chart(FLOW_DOT, width="stretch")
     except Exception:  # graphviz rendering unavailable — show the text version only
         pass
-    st.caption("Text version: CCTV counts + obstacle reports + walkway network → persona routing → Gap Index and "
+    st.caption("Text version: CCTV counts + obstacle reports + walkway network → persona routing → Access Score and "
                "suppressed demand → upgrade ranking by benefit per cost tier → work orders → on-site verification, "
                "which updates the network.")
 
@@ -95,6 +95,14 @@ many people gain access to which places.**
 - Every chart has a one-line text summary; photos have captions; all controls are standard keyboard-reachable widgets.
 - Theme text colours are chosen for at least 4.5:1 contrast on white.
 """)
+
+    credits = ui.photo_credits()
+    if credits:
+        st.subheader("Photo credits")
+        st.caption("Third-party editorial images used with credit for a non-commercial hackathon demo; faces and "
+                   "licence plates blurred. Not licensed by AccessTwin — removed on request.")
+        for name, c in credits.items():
+            st.markdown(f"- {c['label']} — {c['source']} ({c['url']})")
 
     st.subheader("Team")
     st.caption("Team details to be added.")

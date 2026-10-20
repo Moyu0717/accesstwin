@@ -41,12 +41,12 @@ def scenario_panel(persona, mode: str) -> None:
         d, text = cached.scenario(okey, tuple(selected))
 
         m1, m2, m3, m4 = st.columns(4)
-        m1.metric("Township index", f"{d.index_after:.1f}", f"{d.index_delta:+.1f}")
+        m1.metric("Access Score", f"{d.index_after:.1f}", f"{d.index_delta:+.1f}")
         pdelta = d.persona_delta()
         m2.metric(f"{ui.persona_short(persona.key)} index", f"{d.persona_after[persona.key]:.0f}", f"{pdelta[persona.key]:+.1f}")
-        m3.metric("New trips", len(d.newly_reachable))
-        m4.metric("Beneficiaries", f"{d.beneficiaries:.0f}", help="population × vulnerable share, spread over the 4 personas")
-        ui.card("💡 What changes", text + f"<br><span class='at-muted'>⚠️ {t('onsite')}</span>", "good" if d.index_delta > 0 else "")
+        m3.metric("Newly reachable (modelled)", len(d.newly_reachable))
+        m4.metric("Estimated residents (model)", f"{d.beneficiaries:.0f}", help="population × vulnerable share, spread over the 4 personas")
+        ui.card("💡 What changes", ui.esc(text) + f"<br><span class='at-muted'>⚠️ {t('onsite')}</span>", "good" if d.index_delta > 0 else "")
 
         changed = [u.get("edge_id") or u["new_edge"]["id"] for u in chosen]
         view = st.radio("Map", ["After", "Before"], horizontal=True, key="sim_view",
@@ -95,8 +95,8 @@ def main() -> None:
     scenario_panel(persona, mode)
 
     st.divider()
-    st.subheader("📈 Upgrade ROI ranking")
-    st.caption("benefit = Δindex × 10 + newly reachable trips × 3 + beneficiaries ÷ 100;  ROI = benefit ÷ cost weight (low 1, medium 2.5, high 5).")
+    st.subheader("Upgrade priority score ranking")
+    st.caption("benefit = Δindex × 10 + newly reachable trips × 3 + beneficiaries ÷ 100;  upgrade priority score = benefit ÷ cost weight (low 1, medium 2.5, high 5).")
     df = cached.ranking(ui.overlay_key(), mode)
     if df.empty:
         st.info("No candidate upgrades for this mode.")

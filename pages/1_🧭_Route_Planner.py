@@ -44,11 +44,11 @@ def planner(persona) -> None:
     with right:
         st.subheader(ui.persona_label(persona.key))
         if not r.reachable:
-            ui.card("🚫 Not reachable for this persona", f"<b>Blocking segment:</b> {r.reason}<br>"
+            ui.card("🚫 Not reachable for this persona", f"<b>Blocking segment:</b> {ui.esc(r.reason)}<br>"
                     "No alternative path satisfies this persona's rules.", "bad")
         else:
             if not r.direct_reachable:
-                ui.card("⚠️ Direct route not usable", f"<b>Blocking segment:</b> {r.reason}<br>"
+                ui.card("⚠️ Direct route not usable", f"<b>Blocking segment:</b> {ui.esc(r.reason)}<br>"
                         f"A detour exists, {r.detour_ratio:.1f}× the shortest distance.", "warn")
             elif r.edges == r.baseline_edges:
                 ui.card("✅ Direct route usable", "This persona can use the shortest route.", "good")

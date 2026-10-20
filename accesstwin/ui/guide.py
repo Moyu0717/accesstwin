@@ -25,13 +25,15 @@ class Stop:
 
 STOPS: list[Stop] = [
     Stop("pages/0_🏠_Overview.py", 1, "The problem",
-         "The wheelchair and stroller scores are below 50, while elderly residents score higher.",
-         "Read the Top 3 critical gaps on the right, then press Next.",
+         "Clinic approach (E7) is selected: the shortest reference path is interrupted by a raised step, and the "
+         "wheelchair profile needs a much longer detour. The Access Score is lowest for wheelchair and stroller.",
+         "Read the Inspector on the right, then press Next.",
          {"persona": "wheelchair", "persona_select": "wheelchair", "rp_origin": "R1", "rp_dest": "D_CLINIC"}),
     Stop("pages/1_🧭_Route_Planner.py", 2, "Same trip, different people",
-         "Block A → Clinic: the direct route is blocked for a wheelchair at E7 (15 cm step); the detour is 2.4× longer.",
-         "Optional: switch the sidebar persona to Elderly to see the direct route work. Then press Next.",
-         {"persona": "wheelchair", "persona_select": "wheelchair", "ro_src": "Use a sample photo", "ro_sample": "curb_high_step.png", "ro_edge": "E7"}),
+         "Block A → Clinic: the direct route is blocked for a wheelchair at E7; the detour is about 2.4× longer.",
+         "Optional: switch the sidebar profile to Older adult to see the direct route work. Then press Next.",
+         {"persona": "wheelchair", "persona_select": "wheelchair", "ro_src": "Use a sample photo",
+          "ro_sample": "curb_high_step.png", "ro_edge": "E7"}),
     Stop("pages/2_📸_Report_Obstacle.py", 3, "Evidence: a resident reports it",
          "The sample kerb photo is classified as a high curb that needs on-site measurement.",
          "Press **Submit report**, then Next."),
@@ -41,14 +43,14 @@ STOPS: list[Stop] = [
     Stop("pages/4_🎥_Footfall_Analytics.py", 3, "Evidence: suppressed demand",
          "Anonymous CCTV counts on E7 are far below what the model expects.",
          "Press **Run count**, scroll to 'Camera counts vs expected demand', then Next (this resets the demo data).",
-         {"sim_selected": ["U1"], "sim_multiselect": ["U1"], "mode": "operate", "sim_mode": "operate"}, reset_next=True),
-    Stop("pages/5_🏗️_Upgrade_Simulator.py", 4, "Decide what to fix first",
-         "A low-cost kerb ramp (U1) lifts the wheelchair score and ranks first by benefit per cost tier.",
-         "Look at the ROI ranking and the recommended package, then Next.",
-         {"mode": "design", "dash_mode": "design"}),
-    Stop("pages/6_📊_Planner_Dashboard.py", 5, "Scale: review before building",
-         "Design mode adds pre-construction options; the Planning Brief summarises everything for a board or ESG report.",
-         "Download the Planning Brief, then Finish."),
+         {"cmp_view": "Scenario"}, reset_next=True),
+    Stop("pages/8_Compare.py", 4, "Decide what to fix first",
+         "Baseline vs a low-cost kerb ramp at E7 (simulated): Access Score, every profile, the journey distance and "
+         "the cost tier in one aligned table.",
+         "Switch the map between Baseline and Scenario, then Next."),
+    Stop("pages/9_Deliver.py", 5, "Deliver the study",
+         "The brief records the barrier, the proposed response and the next decisions for the same snapshot.",
+         "Download the study brief, then Finish."),
 ]
 
 

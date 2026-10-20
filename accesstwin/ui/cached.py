@@ -21,7 +21,7 @@ def _graph(overlay_key: str):
     return build_graph(load_township(), json.loads(overlay_key) or None)
 
 
-@st.cache_data(max_entries=16, show_spinner="Computing the Accessibility Gap Index…")
+@st.cache_data(max_entries=16, show_spinner="Computing the Access Score…")
 def scores(overlay_key: str):
     return compute_scores(_graph(overlay_key), load_personas())
 
@@ -43,10 +43,11 @@ def demand(overlay_key: str, counts_key: str):
 
 
 @st.cache_data(max_entries=16, show_spinner=False)
-def brief_html(overlay_key: str, counts_key: str, mode: str, reports_key: str) -> str:
+def brief_html(overlay_key: str, counts_key: str, mode: str, reports_key: str, scenario_key: str = "") -> str:
     G = _graph(overlay_key)
     return report.brief_html(G, load_personas(), scores(overlay_key), ranking(overlay_key, mode),
-                             demand(overlay_key, counts_key), store.list_reports(), mode, bundle(overlay_key, mode))
+                             demand(overlay_key, counts_key), store.list_reports(), mode, bundle(overlay_key, mode),
+                             json.loads(scenario_key) if scenario_key else None)
 
 
 @st.cache_data(max_entries=64, show_spinner="Simulating…")
@@ -71,3 +72,29 @@ def bundle(overlay_key: str, mode: str):
 
     return recommend_bundle(_graph(overlay_key), load_upgrades(), load_personas(), mode=mode,
                             ranking=ranking(overlay_key, mode))
+
+
+def data_version(overlay_key: str) -> str:
+    """Short fingerprint of the base data + overlay, shown on every V2 view and in the brief."""
+    import hashlib
+
+    from accesstwin import config
+
+    h = hashlib.sha256()
+    for p in (config.TOWNSHIP_PATH, config.PERSONAS_PATH, config.UPGRADES_PATH):
+        h.update(p.read_bytes())
+    h.update(overlay_key.encode("utf-8"))
+    return h.hexdigest()[:8]
+
+
+@st.cache_data(max_entries=128, show_spinner=False)
+def journey(overlay_key: str, upgrade_ids: tuple[str, ...], origin: str, dest: str, persona_key: str):
+    """route() for one journey on the baseline (no upgrades) or a session-only scenario graph."""
+    from accesstwin.core.routing import route
+    from accesstwin.core.simulation import apply_upgrades
+
+    G = _graph(overlay_key)
+    if upgrade_ids:
+        by_id = {u["id"]: u for u in load_upgrades()}
+        G = apply_upgrades(G, [by_id[i] for i in upgrade_ids])
+    return route(G, origin, dest, load_personas()[persona_key])

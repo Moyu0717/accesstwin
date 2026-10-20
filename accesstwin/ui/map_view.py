@@ -5,6 +5,7 @@ HTML string, cache it keyed by everything that changes the picture, and show it 
 """
 from __future__ import annotations
 
+import html
 import json
 from typing import Iterable
 
@@ -17,13 +18,17 @@ from accesstwin.core.graph import build_graph, find_edge, iter_edges, load_towns
 from accesstwin.core.personas import Persona, load_personas
 from accesstwin.core.routing import edge_passable
 
-# Colour-blind-safe (Okabe–Ito) palette, and every status also has a non-colour cue:
-# verified = solid blue, blocked = solid vermillion + ✖ marker, unverified = grey dashed,
-# impassable for the selected persona = thin dotted vermillion.
-STATUS_COLOURS = {"verified_accessible": "#0072B2", "blocked": "#D55E00", "unverified": "#8C8C8C"}
+# V2 plan-view palette (accesstwin/ui/theme.py tokens). Every status also has a non-colour cue:
+# recorded = solid warm grey, blocked = solid red + ✖, unverified = grey dashed,
+# impassable for the selected profile = thin dotted red, selected segment = copper with dark outline.
+STATUS_COLOURS = {"verified_accessible": "#A9A595", "blocked": "#A63429", "unverified": "#687064"}
 STATUS_DASH = {"verified_accessible": None, "blocked": None, "unverified": "6 8"}
-IMPASSABLE_COLOUR, IMPASSABLE_DASH = "#D55E00", "2 6"
-CATEGORY_COLOURS = {"clinic": "#DC2626", "bus_stop": "#1D4ED8", "school": "#7C3AED", "grocery": "#EA580C", "park": "#15803D"}
+IMPASSABLE_COLOUR, IMPASSABLE_DASH = "#A63429", "2 6"
+SELECTED_COLOUR, SELECTED_OUTLINE = "#B75D37", "#5C2A16"
+UPGRADED_COLOUR = "#B75D37"
+REFERENCE_COLOUR, DETOUR_COLOUR = "#B75D37", "#526E70"
+MAP_BACKGROUND = "#E9ECE1"
+CATEGORY_COLOURS = {"clinic": "#8E4326", "bus_stop": "#526E70", "school": "#5D5A8C", "grocery": "#765818", "park": "#345F4C"}
 
 
 def _coords(G: nx.MultiGraph, node_id: str) -> tuple[float, float]:
@@ -62,31 +67,44 @@ def base_map(
     pending_reports: Iterable[dict] = (),
     show_ids: bool = False,
     zoom: int = 16,
+    selected: str = "",
+    street: bool = False,
 ) -> folium.Map:
+    """Plan view: no tiles by default, the walkway graph drawn like a drawing on paper (plan §4.3)."""
     lats = [float(d["lat"]) for _, d in G.nodes(data=True)]
     lons = [float(d["lon"]) for _, d in G.nodes(data=True)]
     m = folium.Map(location=[sum(lats) / len(lats), sum(lons) / len(lons)], zoom_start=zoom,
-                   tiles="OpenStreetMap", control_scale=True, scrollWheelZoom=False, prefer_canvas=True)
-    m.fit_bounds([[min(lats), min(lons)], [max(lats), max(lons)]], padding=(20, 20))
+                   tiles="OpenStreetMap" if street else None, control_scale=street, scrollWheelZoom=False,
+                   prefer_canvas=True)
+    # Same bounds for every view of the scene: all nodes of the base network (Baseline and Scenario share them).
+    m.fit_bounds([[min(lats), min(lons)], [max(lats), max(lons)]], padding=(28, 28))
+    if not street:
+        m.get_root().header.add_child(folium.Element(
+            "<style>.leaflet-container{background:" + MAP_BACKGROUND + ";font-family:'Segoe UI',Arial,sans-serif}</style>"))
     highlight = set(highlight_edges)
 
     for edge in iter_edges(G):
         status = edge.get("status", "unverified")
-        colour = STATUS_COLOURS.get(status, "#9CA3AF")
+        colour = STATUS_COLOURS.get(status, "#687064")
         why = None
-        weight, opacity = 5, 0.9
+        weight, opacity = 6, 0.95
         dash = STATUS_DASH.get(status)
         if persona is not None and status != "blocked":
             ok, why = edge_passable(edge, persona, include_unverified)
             if not ok and status != "unverified":
-                colour, weight, dash = IMPASSABLE_COLOUR, 3, IMPASSABLE_DASH  # impassable for this persona
-        if edge["id"] in highlight:
-            weight, opacity, colour = 9, 1.0, "#F59E0B"
-        folium.PolyLine(edge_line(G, edge), color=colour, weight=weight, opacity=opacity, dash_array=dash,
+                colour, weight, dash = IMPASSABLE_COLOUR, 3, IMPASSABLE_DASH  # impassable for this profile
+        line = edge_line(G, edge)
+        if edge["id"] == selected:
+            folium.PolyLine(line, color=SELECTED_OUTLINE, weight=13, opacity=0.9).add_to(m)
+            colour, weight, opacity, dash = SELECTED_COLOUR, 8, 1.0, None
+        elif edge["id"] in highlight:
+            folium.PolyLine(line, color=SELECTED_OUTLINE, weight=12, opacity=0.6).add_to(m)
+            colour, weight, opacity, dash = UPGRADED_COLOUR, 8, 1.0, None
+        folium.PolyLine(line, color=colour, weight=weight, opacity=opacity, dash_array=dash,
                         tooltip=_edge_tooltip(edge, why)).add_to(m)
         if status == "blocked":  # non-colour cue for blocked segments
             folium.map.Marker(edge_midpoint(G, edge), tooltip=f"{edge['id']}: blocked", icon=folium.DivIcon(
-                html="<div style='font-size:15px;line-height:15px;color:#D55E00;font-weight:900;"
+                html="<div style='font-size:15px;line-height:15px;color:#A63429;font-weight:900;"
                      "text-shadow:0 0 2px #fff,0 0 2px #fff'>✖</div>")).add_to(m)
         if show_ids:
             folium.map.Marker(edge_midpoint(G, edge), icon=folium.DivIcon(
@@ -95,22 +113,54 @@ def base_map(
     for nid, d in G.nodes(data=True):
         loc = [float(d["lat"]), float(d["lon"])]
         if d.get("type") == "residential":
-            folium.CircleMarker(loc, radius=8, color="#0E7490", weight=2, fill=True, fill_color="#67E8F9", fill_opacity=0.9,
-                                tooltip=f"🏠 {d['name']} · pop {d.get('population')} · vulnerable {d.get('vulnerable_share', 0):.0%}").add_to(m)
+            folium.CircleMarker(loc, radius=7, color="#394338", weight=2, fill=True, fill_color="#FBFBF8", fill_opacity=1,
+                                tooltip=f"{d['name']} · pop {d.get('population')} · vulnerable {d.get('vulnerable_share', 0):.0%}").add_to(m)
+            _label(m, loc, d["name"])
         elif d.get("type") == "destination":
-            c = CATEGORY_COLOURS.get(d.get("category"), "#6B7280")
-            folium.CircleMarker(loc, radius=9, color="#111827", weight=2, fill=True, fill_color=c, fill_opacity=0.95,
-                                tooltip=f"📍 {d['name']} ({d.get('category', '').replace('_', ' ')})").add_to(m)
+            c = CATEGORY_COLOURS.get(d.get("category"), "#586151")
+            folium.CircleMarker(loc, radius=6, color="#242824", weight=1.5, fill=True, fill_color=c, fill_opacity=0.95,
+                                tooltip=f"{d['name']} ({d.get('category', '').replace('_', ' ')})").add_to(m)
+            _label(m, loc, d["name"])
         else:
-            folium.CircleMarker(loc, radius=3, color="#374151", fill=True, tooltip=d.get("name", nid)).add_to(m)
+            folium.CircleMarker(loc, radius=3, color="#586151", fill=True, tooltip=d.get("name", nid)).add_to(m)
 
     for r in pending_reports:
         edge = find_edge(G, r["edge_id"])
         if edge is None:
             continue
-        folium.CircleMarker(edge_midpoint(G, edge), radius=9, color="#EA580C", fill=True, fill_color="#FB923C",
-                            fill_opacity=0.9, tooltip=f"Pending report #{r['id']} on {r['edge_id']}: {r.get('type', '?')}").add_to(m)
+        folium.CircleMarker(edge_midpoint(G, edge), radius=8, color="#765818", weight=2, fill=True, fill_color="#FBFBF8",
+                            fill_opacity=1, tooltip=f"Pending report #{r['id']} on {r['edge_id']}: {r.get('type', '?')}").add_to(m)
     return m
+
+
+def _label(m: folium.Map, loc, text: str) -> None:
+    folium.map.Marker(loc, icon=folium.DivIcon(icon_size=(160, 16), icon_anchor=(-9, 7), html=(
+        "<div style='font-size:11px;letter-spacing:.4px;color:#3F4A36;white-space:nowrap;"
+        "text-shadow:0 0 3px #E9ECE1,0 0 3px #E9ECE1'>" + html.escape(str(text)) + "</div>"))).add_to(m)
+
+
+def add_barrier_marker(m: folium.Map, G: nx.MultiGraph, edge_id: str, label: str) -> None:
+    """Outlined "!" barrier marker with a readable label (selected segment)."""
+    e = find_edge(G, edge_id)
+    if not e:
+        return
+    folium.map.Marker(edge_midpoint(G, e), tooltip=label, icon=folium.DivIcon(icon_size=(220, 26), icon_anchor=(11, 11),
+        html=("<div style='display:flex;align-items:center;gap:6px'>"
+              "<span style='display:inline-grid;place-items:center;width:20px;height:20px;border:2px solid #A63429;"
+              "border-radius:50%;background:#FBFBF8;color:#A63429;font-weight:800;font-size:13px'>!</span>"
+              "<span style='background:#FAF9F4;border:1px solid #D8D2C6;padding:2px 6px;font-size:12px;color:#242824;"
+              "white-space:nowrap'>" + html.escape(label) + "</span></div>"))).add_to(m)
+
+
+def add_legend(m: folium.Map, items: list, caption: str = "Fictional layout · not to scale") -> None:
+    """Legend inside the map frame. items = [(css border-top style, label)]."""
+    rows = "".join("<span style='display:inline-flex;align-items:center;gap:6px;margin-right:12px'>"
+                   "<i style='display:inline-block;width:20px;border-top:" + style + "'></i>" + html.escape(lb) + "</span>"
+                   for style, lb in items)
+    m.get_root().html.add_child(folium.Element(
+        "<div style='position:absolute;left:12px;bottom:12px;z-index:9999;background:rgba(249,249,244,.95);"
+        "border:1px solid #D8DDD0;padding:8px 10px;font:12px Segoe UI,Arial,sans-serif;color:#3F4A36;max-width:90%'>"
+        + rows + "<div style='margin-top:4px;color:#586151'>" + html.escape(caption) + "</div></div>"))
 
 
 def add_route(m: folium.Map, G: nx.MultiGraph, path: list[str], colour: str, dashed: bool, label: str) -> None:
@@ -132,6 +182,10 @@ def map_html(
     circles_key: str = "[]",
     show_ids: bool = False,
     zoom: int = 16,
+    selected: str = "",
+    selected_label: str = "",
+    street: bool = False,
+    legend_key: str = "",
 ) -> str:
     """Render a map to a standalone HTML string. All arguments are hashable keys (JSON strings), never objects.
 
@@ -148,7 +202,8 @@ def map_html(
         by_id = {u["id"]: u for u in load_upgrades()}
         G = apply_upgrades(G, [by_id[i] for i in upgrade_ids if i in by_id])
     persona = load_personas()[persona_key] if persona_key else None
-    m = base_map(G, persona, include_unverified, json.loads(highlight_key), json.loads(pending_key), show_ids, zoom)
+    m = base_map(G, persona, include_unverified, json.loads(highlight_key), json.loads(pending_key), show_ids, zoom,
+                 selected=selected, street=street)
     for path, colour, dashed, label in json.loads(routes_key):
         add_route(m, G, path, colour, dashed, label)
     for edge_id, radius, colour, tooltip in json.loads(circles_key):
@@ -156,6 +211,10 @@ def map_html(
         if e:
             folium.CircleMarker(edge_midpoint(G, e), radius=radius, color=colour, fill=True, fill_opacity=0.35,
                                 tooltip=tooltip).add_to(m)
+    if selected and selected_label:
+        add_barrier_marker(m, G, selected, selected_label)
+    if legend_key:
+        add_legend(m, [tuple(x) for x in json.loads(legend_key)])
     return m.get_root().render()
 
 
