@@ -42,45 +42,78 @@ def _report_here(edge_id: str) -> None:
 
 # ---------------------------------------------------------------- Inspector sections
 
-def evidence_section(loc, G) -> None:
-    """X4: linked reports with photo thumbnails, verifications, and the condition record source."""
-    st.markdown(f"<div class='at-section'><div class='at-eyebrow'>{ws.esc(t('evidence_origin'))}</div></div>",
-                unsafe_allow_html=True)
-    reps = [r for r in store.list_reports() if r["edge_id"] == loc.edge_id][::-1]
-    credits = ui.photo_credits()
-    if not reps:
-        st.caption("No photo evidence yet.")
+STATUS_LABEL = {"pending": "Pending review", "approved": "Obstacle confirmed", "rejected": "Rejected"}
+
+
+@st.dialog("Evidence photo", width="large")
+def _enlarge(path: str, caption: str, credit: str) -> None:
+    st.image(path, width="stretch")
+    st.caption(caption)
+    st.caption(credit)
+
+
+def evidence_hero(loc, where: str = "") -> None:
+    """2A-1: the newest linked photo at full Inspector width, with report state, caption and credit.
+
+    `where` suffixes widget keys for the phone copy (2A-4 order: action → evidence → map)."""
+    reps = ws.edge_evidence(loc.edge_id)
+    photos = [r for r in reps if r["photo"]]
+    st.markdown("<span class='at-ws-hero'></span>", unsafe_allow_html=True)
+    if not photos:
+        st.markdown("<div class='at-hero-empty'>No photo evidence yet</div>", unsafe_allow_html=True)
         b1, b2 = st.columns(2)
-        if b1.button("Request site inspection", key=f"ws_inspect_{loc.edge_id}"):
+        b1.button("Report an obstacle here", key=f"ws_report_{loc.edge_id}{where}", on_click=_report_here,
+                  args=(loc.edge_id,), use_container_width=True)
+        if b2.button("Request site inspection", key=f"ws_inspect_{loc.edge_id}{where}", use_container_width=True):
             store.add_inspection_request(loc.edge_id, "requested from the Network inspector")
             st.toast("Site inspection requested (this demo session only).")
-        b2.button("Report an obstacle here", key=f"ws_report_{loc.edge_id}", on_click=_report_here, args=(loc.edge_id,))
         if st.session_state.get("guide_pending", {}).get("ro_edge") == loc.edge_id:
-            ws._page_link("pages/2_📸_Report_Obstacle.py", "Open Report Obstacle ↗")
-    for r in reps:
+            ws._page_link("pages/2_📸_Report_Obstacle.py", "Open Report Obstacle →")
+        return
+    pick_key = f"ws_hero_pick_{loc.edge_id}"
+    ids = [r["id"] for r in photos]
+    if st.session_state.get(pick_key) not in ids:
+        st.session_state[pick_key] = ids[0]
+    r = next(x for x in photos if x["id"] == st.session_state[pick_key])
+    p = r["photo"]
+    ai = r.get("ai") or {}
+    note = (ai.get("visible_evidence") or "").strip()
+    quote = f" · “{note[:70]}{'…' if len(note) > 70 else ''}”" if note else ""
+    caption = f"{r['reporter_role'].capitalize()} · {r['created_at'][:10]}{quote}"
+    credit = ui.photo_credit_line(p.name)
+    st.markdown(
+        f"<figure class='at-hero'><img alt='{ws.esc(ui.photo_caption(p.name))}' "
+        f"src='data:image/jpeg;base64,{ws.photo_b64(str(p), p.stat().st_mtime)}'/>"
+        f"<span class='at-hero-chip {r['status']}'>Report #{r['id']} · {ws.esc(STATUS_LABEL[r['status']])}</span></figure>"
+        f"<div class='at-hero-cap'>{ws.esc(caption)}</div><div class='at-hero-credit'>{ws.esc(credit)}</div>",
+        unsafe_allow_html=True)
+    if st.button("Enlarge photo", key=f"ws_enlarge_{loc.edge_id}{where}", type="tertiary"):
+        _enlarge(str(p), caption, credit)
+    if len(photos) > 1:
+        cols = st.columns(min(len(photos), 4))
+        for i, x in enumerate(photos[:4]):
+            with cols[i]:
+                st.image(str(x["photo"]), width="stretch")
+                st.button(f"#{x['id']}", key=f"ws_thumb_{loc.edge_id}_{x['id']}{where}", type="tertiary",
+                          on_click=lambda k=pick_key, v=x["id"]: st.session_state.__setitem__(k, v))
+
+
+def evidence_details(loc) -> None:
+    """2A-1 item 6: AI suggestion & review details, verification records, condition record source (no photos)."""
+    st.markdown(f"<div class='at-section'><div class='at-eyebrow'>{ws.esc(t('evidence_origin'))}</div></div>",
+                unsafe_allow_html=True)
+    for r in ws.edge_evidence(loc.edge_id):
         ai = r.get("ai") or {}
         src = ai.get("source", "mock")
         badge = f"Groq · {ai.get('model', '')}" if src == "groq" else ("Seed record" if src == "seed" else "Demo classifier")
-        cols = st.columns([1, 2], vertical_alignment="top")
-        photo = config.resolve_path(r["photo_path"]) if r.get("photo_path") else None
-        with cols[0]:
-            if photo and photo.exists():
-                st.image(str(photo), width="stretch")
-                with st.expander("Enlarge"):
-                    st.image(str(photo), width="stretch")
-                    st.caption(ui.photo_caption(photo.name))
-            else:
-                st.caption("No photo")
-        with cols[1]:
-            status = {"pending": "Pending review", "approved": "Confirmed", "rejected": "Rejected"}[r["status"]]
-            st.markdown(
-                f"<div class='at-kv'><b style='color:var(--text-primary)'>Report #{r['id']}</b><span>{ws.esc(status)}</span></div>"
-                f"<div class='at-muted'>{ws.esc(r['reporter_role'].capitalize())} · {ws.esc(r['created_at'][:10])}</div>"
-                f"<div class='at-muted'>AI ({ws.esc(badge)}): {ws.esc(ai.get('obstacle_type', '?').replace('_', ' '))}, "
-                f"{float(ai.get('confidence', 0)):.0%}</div>"
-                f"<div class='at-muted'>{ws.esc(ai.get('visible_evidence') or '')}</div>", unsafe_allow_html=True)
-            if photo is not None and photo.name in credits:
-                st.caption(ui.photo_caption(photo.name))
+        st.markdown(
+            f"<div class='at-kv'><b style='color:var(--text-primary)'>Report #{r['id']}</b>"
+            f"<span>{ws.esc(STATUS_LABEL[r['status']])}</span></div>"
+            f"<div class='at-muted'>{ws.esc(r['reporter_role'].capitalize())} · {ws.esc(r['created_at'][:10])}"
+            f"{' · ' + ws.esc(r['photo'].name) if r['photo'] else ' · no photo'}</div>"
+            f"<div class='at-muted'>AI suggestion ({ws.esc(badge)}): {ws.esc(ai.get('obstacle_type', '?').replace('_', ' '))}, "
+            f"{float(ai.get('confidence', 0)):.0%} · suggestion only, not a safety certification</div>",
+            unsafe_allow_html=True)
     vers = [v for v in store.list_verifications() if v["edge_id"] == loc.edge_id]
     for v in vers[::-1]:
         st.markdown(f"<div class='at-muted'>Verification · {ws.esc(v['verifier_role'])} · {ws.esc(v['created_at'][:10])} · "
@@ -89,6 +122,30 @@ def evidence_section(loc, G) -> None:
         st.markdown(f"<div class='at-muted'>Site inspection requested · {ws.esc(q['created_at'][:10])} · pending</div>",
                     unsafe_allow_html=True)
     st.markdown("<div class='at-kv'><span>Condition record</span><span class='at-chip syn'>Synthetic survey data</span></div>",
+                unsafe_allow_html=True)
+
+
+def route_details(G, r, persona, scenario: tuple) -> None:
+    """2A-2 / plan §4.3-8: the no-hover equivalent of the map — ordered segments, lengths, blocking reasons."""
+    who = ui.persona_short(persona.key)
+    head = f"Route details · {who}" + (" · simulated" if scenario else "")
+    if not r.reachable:
+        body = f"<div class='at-muted'>No passable route for {ws.esc(who)} with the current data.</div>"
+    else:
+        items = []
+        for eid in r.edges:
+            e = ws.find_edge(G, eid) or {}
+            name = f"{node_name(G, e.get('from', ''))} → {node_name(G, e.get('to', ''))}"
+            flag = " · unverified record" if eid in r.unverified_edges else ""
+            items.append(f"<li><span class='at-mono'>{ws.esc(eid)}</span> {ws.esc(name)}"
+                         f"<span class='at-num'>{float(e.get('length_m', 0)):.0f} m{ws.esc(flag)}</span></li>")
+        body = (f"<ol class='at-route'>{''.join(items)}</ol>"
+                f"<div class='at-kv'><span>Total</span><b>{ws.esc(_fmt(r.length_m))}</b></div>")
+    blockers = [b for b in (r.baseline_blockers or []) if b]
+    if blockers and r.baseline_edges != r.edges:
+        body += ("<div class='at-muted' style='margin-top:6px'>Shortest reference path "
+                 f"({ws.esc(_fmt(r.baseline_length_m))}) is interrupted: " + ws.esc("; ".join(blockers)) + "</div>")
+    st.markdown(f"<div class='at-section at-route-box'><div class='at-eyebrow'>{ws.esc(head)}</div>{body}</div>",
                 unsafe_allow_html=True)
 
 
@@ -179,8 +236,6 @@ def inspector(loc, okey: str, scenario: tuple, persona, G) -> None:
     st.markdown(f"<div class='at-eyebrow' style='display:flex;justify-content:space-between'>"
                 f"<span>{ws.esc(t('location_details'))}</span><span>{ws.esc(loc.edge_id)}</span></div>",
                 unsafe_allow_html=True)
-    with st.container(key="ws_top_action"):
-        action_box(loc, scenario, "top")
     review_cls, review_txt = ws.review_state(loc.edge_id)
     kind_cls = {"barrier": "blocked", "inspection": "pending", "blocked": "blocked", "obstruction": "blocked"}[loc.kind]
     status = "Proposed scenario · not built" if scenario else loc.status_text
@@ -191,17 +246,22 @@ def inspector(loc, okey: str, scenario: tuple, persona, G) -> None:
                 f"<div class='at-title'>{ws.esc(loc.label)}</div><div class='at-sub'>{ws.esc(route_line)}</div>"
                 f"<div style='margin-top:6px'><span class='at-status {review_cls}' style='font-weight:500;font-size:13px'>"
                 f"{ws.esc(review_txt)}</span></div>", unsafe_allow_html=True)
+    with st.container(key="ws_hero_desk"):
+        evidence_hero(loc)
+    with st.container(key="ws_top_action"):
+        action_box(loc, scenario, "top")
     if scenario:
         scenario_inspector(loc, okey, scenario, G)
     else:
         baseline_inspector(loc, okey, persona, G)
-    evidence_section(loc, G)
+    evidence_details(loc)
     st.markdown("<div style='margin-top:10px'><a href='#next-action'>Back to action ↑</a></div>", unsafe_allow_html=True)
 
 
 def action_box(loc, scenario: tuple, where: str) -> None:
     """Main action at the top of the Inspector (X9: the bottom repeat became a "Back to action" link)."""
-    st.markdown(f"<div class='at-eyebrow' style='margin-top:4px'>{ws.esc(t('next_action'))}</div>", unsafe_allow_html=True)
+    head = "Scenario action" if scenario else t("next_action")
+    st.markdown(f"<div class='at-eyebrow' style='margin-top:4px'>{ws.esc(head)}</div>", unsafe_allow_html=True)
     if loc.upgrade:
         up = loc.upgrade
         st.markdown(f"<div style='font-weight:600;font-size:15px'>{ws.esc(up['title'])}</div>"
@@ -253,18 +313,22 @@ def main() -> None:
                     f"<div class='at-muted' style='margin:4px 0 10px'>{ws.esc(t('assessment_sub'))}</div>",
                     unsafe_allow_html=True)
         by_id = {x.edge_id: x for x in locs}
-        st.radio(t("priority_locations"), ids, key="ws_segment", index=ids.index(c["segment"]),
-                 format_func=lambda i: f"{ids.index(i) + 1:02d} · {ws.list_label(by_id[i], reviews[i])}",
-                 help="Sorted by modelled impact (score loss weighted by vulnerable residents).",
-                 on_change=lambda: c.update(segment=st.session_state["ws_segment"], scenario=()))
-        st.markdown("<span class='at-ws-list'></span>", unsafe_allow_html=True)
+        # 2A-2: two-line rows (buttons, keyboard reachable); the selected row has an accent side-bar.
+        st.markdown(f"<div class='at-eyebrow' style='margin-top:6px' title='Sorted by modelled impact (score loss "
+                    f"weighted by vulnerable residents).'>{ws.esc(t('priority_locations'))}</div>"
+                    "<span class='at-ws-list'></span>", unsafe_allow_html=True)
+        with st.container(key="ws_rows"):
+            for n, i in enumerate(ids, 1):
+                x = by_id[i]
+                st.button(f"**{n:02d} · {x.label} · {x.edge_id}**\n\n{ws.list_sub(x, reviews[i])}",
+                          key=f"ws_row_{i}", type="primary" if i == c["segment"] else "secondary",
+                          use_container_width=True, help=ws.list_label(x, reviews[i]),
+                          on_click=lambda e=i: c.update(segment=e, scenario=()))
         base = cached.scores(okey)
         if scenario:
             d, _ = cached.scenario(okey, scenario)
-            st.markdown(f"<div class='at-muted'>Baseline {d.index_before:.1f} · <b style='color:var(--accent-strong)'>"
-                        f"Simulated {d.index_after:.1f}</b></div>", unsafe_allow_html=True)
             ws.score_block(SimpleNamespace(index=d.index_after, persona_index=d.persona_after), "Simulated",
-                           delta=d.index_delta)
+                           delta=d.index_delta, before=d.index_before)
         else:
             ws.score_block(base, "Baseline")
         if not guide.active():
@@ -287,14 +351,16 @@ def main() -> None:
                 b0.markdown(f"<div class='at-status sim'><b>SIMULATED</b> · {ws.esc(loc.upgrade['title'])} · not built — "
                             f"existing conditions unchanged</div>", unsafe_allow_html=True)
                 b1.button(f"↩ {t('return_baseline')}", key="ws_return_banner", on_click=_set_scenario, args=((),),
-                          use_container_width=True)
+                          type="tertiary")
                 with b2:
-                    ws._page_link("pages/8_Compare.py", "Compare in detail →")
+                    ws._page_link("pages/8_Compare.py", "Compare →")
         st.markdown(f"<div class='at-mobile-only'><div class='at-status {'sim' if scenario else 'blocked'}'>"
                     f"{ws.esc('Proposed scenario' if scenario else loc.status_text)} · {ws.esc(loc.edge_id)} · "
                     f"{ws.esc(loc.short)}</div></div>", unsafe_allow_html=True)
         with st.container(key="ws_mobile_action"):
             action_box(loc, scenario, "mobile")
+        with st.container(key="ws_hero_mob"):
+            evidence_hero(loc, "_m")
         # X6: plan view only on the public demo; street tiles over the real Elmina streets only behind a dev flag.
         street = False
         if os.environ.get("ACCESSTWIN_DEV_STREETMAP", "0") == "1":
@@ -322,7 +388,7 @@ def main() -> None:
                     legend.append([f"3px dashed {DETOUR_COLOUR}", f"Available route {_fmt(base_r.length_m)}"])
         legend += [["2px solid #A63429", "! barrier · ✖ obstruction / closure"], ["2px dashed #687064", "Unverified"],
                    ["2px dotted #A63429", "Impassable for this profile"]]
-        show_map(height=540 if scenario else 600, overlay_key=okey, persona_key=persona.key, routes_key=json.dumps(routes),
+        show_map(height=640, overlay_key=okey, persona_key=persona.key, routes_key=json.dumps(routes),
                  upgrades_key=json.dumps(list(scenario)),
                  highlight_key=json.dumps([loc.edge_id] if scenario else []),
                  selected="" if scenario else loc.edge_id,
@@ -331,6 +397,8 @@ def main() -> None:
                  street=street, legend_key=json.dumps(legend), show_ids=st.session_state.get("show_ids", False))
         if scenario:
             st.caption(f"Proposed ramp at {loc.edge_id} (amber, simulated). Same map extent as the baseline.")
+        if loc.origin and loc.dest:
+            route_details(G, cached.journey(okey, scenario, loc.origin, loc.dest, persona.key), persona, scenario)
         st.caption("Fictional layout · synthetic data · not to scale. The list on the left is the equivalent of the "
                    "map — no hover needed.")
 

@@ -20,7 +20,7 @@ from accesstwin.ui.map_view import show_map
 @st.fragment
 def draft_network_review() -> None:
     """Design mode (P1-4): upload a draft walkway network, validate it, and review its gaps before building."""
-    st.subheader("📥 Pre-construction review: import a draft walkway network")
+    st.subheader("Pre-construction review: import a draft walkway network")
     st.caption("Upload a draft masterplan's walkway network as two CSV files. It is analysed in this session only "
                "(nothing is stored). Draft segments are not built yet, so they are all counted as planned (unverified).")
     tn, ts = network_import.template_csvs()
@@ -70,7 +70,7 @@ def draft_network_review() -> None:
 @st.fragment
 def work_order_board() -> None:
     """Operate-mode loop (P1-3): open → in progress → done → verify on site → segment verified with the repair."""
-    st.subheader("🛠️ Work orders")
+    st.subheader("Work orders")
     orders = store.list_work_orders()
     if not orders:
         st.info("No work orders yet. Create one from the Upgrade Simulator (\"Create work order\").")
@@ -79,7 +79,7 @@ def work_order_board() -> None:
     repairable = {u["id"] for u in load_upgrades() if u.get("edge_id")}
     verified = {v["note"].split()[0] for v in store.list_verifications() if (v.get("note") or "").startswith(store.WO_NOTE_PREFIX)}
     cols = st.columns(3)
-    for col, status, label in zip(cols, store.WORK_ORDER_STATUSES, ["📋 Open", "🚧 In progress", "✅ Done"]):
+    for col, status, label in zip(cols, store.WORK_ORDER_STATUSES, ["Open", "In progress", "Done"]):
         with col:
             group = [o for o in orders if o["status"] == status]
             st.markdown(f"**{label}** ({len(group)})")
@@ -123,7 +123,7 @@ def main() -> None:
                 return json.load(f).get("camera_daily_counts", {}), "precomputed file"
 
 
-    st.title(f"📊 {t('dash_title')}")
+    ui.page_head(t('dash_title'), eyebrow="Planning · Dashboard")
 
 
     guide.panel("pages/6_📊_Planner_Dashboard.py")
@@ -133,7 +133,7 @@ def main() -> None:
                     key="dash_mode")
     st.session_state["mode"] = mode
     if mode == "design":
-        st.info("🏗️ **Pre-construction review** — gaps found here can be fixed on the drawing, before anything is built. "
+        st.info("**Pre-construction review** — gaps found here can be fixed on the drawing, before anything is built. "
                 "Design-only upgrades (e.g. new link paths) are included in the ranking below.")
 
     okey = ui.overlay_key()
@@ -153,17 +153,17 @@ def main() -> None:
 
     left, right = st.columns([3, 2])
     with left:
-        st.subheader("🗺️ Footfall heat layer")
+        st.subheader("Footfall heat layer")
         peak = max([d.observed for d in demand if d.observed] or [1])
-        circles = [[d.edge_id, 6 + 22 * d.observed / peak, "#DC2626" if d.suppressed else "#2563EB",
+        circles = [[d.edge_id, 6 + 22 * d.observed / peak, "#A63429" if d.suppressed else "#526E70",
                     f"{d.cctv_id} on {d.edge_id}: observed {d.observed:.0f} vs expected {d.expected or 0:.0f} — {d.status}"]
                    for d in demand if d.observed is not None]
         show_map(height=430, overlay_key=okey, persona_key=persona.key, circles_key=json.dumps(circles),
                  show_ids=st.session_state.get("show_ids", False), zoom=15)
-        st.caption("Circle size = observed footfall (aggregate counts only). 🔴 suppressed demand · 🔵 as expected. "
+        st.caption("Circle size = observed footfall (aggregate counts only). Dark red = suppressed demand · teal = as expected (also listed on the right). "
                    f"Counts source: {counts_src}.")
     with right:
-        st.subheader("🚷 Suppressed demand")
+        st.subheader("Suppressed demand")
         if not sup:
             st.info("No suppressed-demand segments with the current counts.")
         for d in sup:
@@ -179,10 +179,11 @@ def main() -> None:
 
     ui.bundle_card(cached.bundle(okey, mode), "dash_bundle")
 
-    st.subheader("🔥 Gap heatmap (residential × persona)")
+    st.subheader("Gap heatmap (home × profile)")
     gm = scores.gap_matrix(G)
     gm.columns = [ui.persona_short(c) for c in gm.columns]
-    fig = px.imshow(gm, text_auto=".0f", zmin=0, zmax=100, color_continuous_scale="RdYlGn", aspect="auto")
+    fig = px.imshow(gm, text_auto=".0f", zmin=0, zmax=100, color_continuous_scale=["#F3F5F0", "#9DBAB6", "#2F5F5C"], aspect="auto",
+                    labels={"color": "Access Score"})
     fig.update_layout(height=300, margin=dict(l=10, r=10, t=10, b=10))
     st.plotly_chart(fig, width="stretch")
     _low = gm.stack().idxmin()
@@ -191,11 +192,12 @@ def main() -> None:
 
     c1, c2 = st.columns(2)
     with c1:
-        st.subheader("📥 Report statistics")
+        st.subheader("Report statistics")
         stats = report.report_stats(reports)
         if stats["total"]:
             df = pd.DataFrame([{"obstacle type": k.replace("_", " "), "reports": v} for k, v in stats["by_type"].items()])
-            st.plotly_chart(px.bar(df, x="obstacle type", y="reports", height=260), width="stretch")
+            st.plotly_chart(px.bar(df, x="obstacle type", y="reports", height=260, color_discrete_sequence=["#526E70"]),
+                            width="stretch")
             _most = df.sort_values("reports", ascending=False).iloc[0]
             st.caption(f"Chart summary: {stats['total']} reports; most common type: {_most['obstacle type']} ({_most['reports']}).")
             st.caption("By status: " + ", ".join(f"{k} {v}" for k, v in stats["by_status"].items())
@@ -203,17 +205,19 @@ def main() -> None:
         else:
             st.info("No reports yet.")
     with c2:
-        st.subheader("🏆 Top 5 upgrades")
+        st.subheader("Top 5 upgrades")
         if ranking.empty:
             st.info("No candidate upgrades for this mode.")
         else:
-            st.dataframe(ranking.head(5)[["rank", "id", "title", "cost_tier", "delta_index", "roi"]], hide_index=True, width="stretch")
+            st.dataframe(ranking.head(5)[["rank", "id", "title", "cost_tier", "delta_index", "roi"]], hide_index=True, width="stretch",
+                         column_config={"delta_index": st.column_config.NumberColumn("Δ Access Score"),
+                                        "roi": st.column_config.NumberColumn("upgrade priority score")})
 
     if mode == "design":
         draft_network_review()
     work_order_board()
 
-    with st.expander("🔬 Evidence & validation (what is measured, synthetic or planned)"):
+    with st.expander("Evidence & validation (what is measured, synthetic or planned)"):
         fc, cc = validation.footfall_check(), validation.classifier_check()
         st.dataframe(validation.kpi_rows(fc, cc, cached.bundle(okey, mode)), hide_index=True, width="stretch",
                      column_config={"status": st.column_config.TextColumn("status", width="large")})
@@ -222,14 +226,14 @@ def main() -> None:
         st.caption("No field validation has been done yet. Synthetic and planned items are labelled; nothing here is "
                    "a measured result from a real township.")
 
-    st.subheader("📄 Export Planning Brief")
+    st.subheader("Export Planning Brief")
     html_doc = cached.brief_html(okey, counts_key, mode, json.dumps([[r['id'], r['status']] for r in reports]))
     d1, d2, d3 = st.columns(3)
-    d1.download_button("⬇️ Planning Brief (HTML)", html_doc, file_name="accesstwin_planning_brief.html",
+    d1.download_button("Planning Brief (HTML)", html_doc, file_name="accesstwin_planning_brief.html",
                        mime="text/html", type="primary", key="dash_dl_html")
-    d2.download_button("⬇️ Upgrade ranking (CSV)", report.ranking_csv(ranking) if not ranking.empty else "",
+    d2.download_button("Upgrade ranking (CSV)", report.ranking_csv(ranking) if not ranking.empty else "",
                        file_name="accesstwin_upgrades.csv", mime="text/csv", key="dash_dl_csv")
-    d3.download_button("⬇️ Suppressed demand (CSV)", report.demand_csv(demand), file_name="accesstwin_demand.csv",
+    d3.download_button("Suppressed demand (CSV)", report.demand_csv(demand), file_name="accesstwin_demand.csv",
                        mime="text/csv", key="dash_dl_demand")
     st.caption("Open the HTML in a browser and print to PDF (Ctrl+P) to share — zero cost.")
 

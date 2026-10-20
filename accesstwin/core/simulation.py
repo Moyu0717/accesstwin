@@ -191,11 +191,11 @@ def explain(G: nx.MultiGraph, d: Delta, personas: dict[str, Persona], reductions
     if d.newly_reachable:
         cats = sorted({x["category"].replace("_", " ") for x in d.newly_reachable})
         verb = "" if biggest else f"{head}: "
-        parts.append(f"{verb}{len(d.newly_reachable)} resident–persona trips become practical within a comfortable "
+        parts.append(f"{verb}{len(d.newly_reachable)} newly reachable combinations (modelled) within a comfortable "
                      f"walking distance ({', '.join(cats)}).")
     pdelta = d.persona_delta()
     top_p = max(pdelta, key=lambda k: pdelta[k])
-    parts.append(f"{personas[top_p].label} index {d.persona_before[top_p]:.0f} → {d.persona_after[top_p]:.0f}; "
+    parts.append(f"Access Score — {personas[top_p].label} {d.persona_before[top_p]:.0f} → {d.persona_after[top_p]:.0f}; "
                  f"Access Score {d.index_before:.1f} → {d.index_after:.1f} ({d.index_delta:+.1f}).")
     if d.beneficiaries >= 1:
         parts.append(f"An estimated {d.beneficiaries:.0f} residents who need extra mobility support benefit (model estimate).")

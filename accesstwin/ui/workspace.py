@@ -176,7 +176,7 @@ def project_bar(stage: str) -> None:
         label = t(f"stage_{key}")
         with col:
             if key == stage:
-                st.markdown(f"<div style='min-height:44px;display:flex;align-items:center;justify-content:center;"
+                st.markdown(f"<div class='at-tab-active' style='min-height:44px;display:flex;align-items:center;justify-content:center;"
                             f"font-weight:600;border-bottom:2px solid #333B30'>{esc(label)}</div>",
                             unsafe_allow_html=True)
             else:
@@ -205,14 +205,15 @@ def status_bar(simulated: bool, version: str) -> None:
         unsafe_allow_html=True)
 
 
-def score_block(scores, label_state: str, delta: float | None = None) -> None:
+def score_block(scores, label_state: str, delta: float | None = None, before: float | None = None) -> None:
     """Access Score (higher is better) + per-profile bars, from a ScoreResult."""
     P = load_personas()
     rows = "".join(
         f"<div class='at-prow'><span>{esc(t('p_short_' + k))}</span>"
         f"<span class='at-bar-track'><i style='width:{max(0.0, min(100.0, v)):.0f}%'></i></span>"
         f"<span class='at-num'>{v:.1f}</span></div>" for k, v in scores.persona_index.items() if k in P)
-    support = (f"{delta:+.1f} points · simulated" if delta is not None else t("score_support"))
+    support = (f"{delta:+.1f} points vs baseline {before:.1f} · simulated" if delta is not None and before is not None
+               else f"{delta:+.1f} points · simulated" if delta is not None else t("score_support"))
     st.markdown(
         f"<div class='at-eyebrow' style='display:flex;justify-content:space-between'><span>{esc(t('access_score'))}</span>"
         f"<span>{esc(label_state)}</span></div>"
@@ -324,9 +325,41 @@ def review_state(edge_id: str) -> tuple[str, str]:
 
 def list_label(loc: Location, review: str) -> str:
     """Priority list row (X8): name · ID — barrier · profiles · review state."""
+    return f"{loc.label} · {loc.edge_id} — {list_sub(loc, review)}"
+
+
+def list_sub(loc: Location, review: str) -> str:
+    """Second line of a priority row (2A-2): condition · profiles · review state."""
     n = len(loc.affected)
     prof = f"{n} profile{'s' if n != 1 else ''}" if loc.kind != "inspection" else "impact not assessed"
-    return f"{loc.label} · {loc.edge_id} — {loc.short} · {prof} · {review.lower()}"
+    return f"{loc.short} · {prof} · {review.lower().replace('report pending review', 'report pending')}"
+
+
+@st.cache_data(max_entries=64, show_spinner=False)
+def photo_b64(path_str: str, mtime: float, side: int = 760) -> str:
+    """Downscaled JPEG as base64 for inline evidence images (cached by path + mtime)."""
+    import base64
+    import io
+
+    from PIL import Image
+
+    with Image.open(path_str) as im:
+        im = im.convert("RGB")
+        im.thumbnail((side, side))
+        buf = io.BytesIO()
+        im.save(buf, format="JPEG", quality=80)
+    return base64.b64encode(buf.getvalue()).decode("ascii")
+
+
+def edge_evidence(edge_id: str) -> list[dict]:
+    """Reports on a segment, newest first, each with its resolved photo path (None when missing)."""
+    from accesstwin.core import store
+
+    out = []
+    for r in [x for x in store.list_reports() if x["edge_id"] == edge_id][::-1]:
+        p = config.resolve_path(r["photo_path"]) if r.get("photo_path") else None
+        out.append({**r, "photo": p if p and p.exists() else None})
+    return out
 
 
 @dataclass

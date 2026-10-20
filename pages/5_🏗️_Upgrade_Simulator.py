@@ -43,10 +43,10 @@ def scenario_panel(persona, mode: str) -> None:
         m1, m2, m3, m4 = st.columns(4)
         m1.metric("Access Score", f"{d.index_after:.1f}", f"{d.index_delta:+.1f}")
         pdelta = d.persona_delta()
-        m2.metric(f"{ui.persona_short(persona.key)} index", f"{d.persona_after[persona.key]:.0f}", f"{pdelta[persona.key]:+.1f}")
+        m2.metric(f"Access Score — {ui.persona_short(persona.key)}", f"{d.persona_after[persona.key]:.0f}", f"{pdelta[persona.key]:+.1f}")
         m3.metric("Newly reachable (modelled)", len(d.newly_reachable))
         m4.metric("Estimated residents (model)", f"{d.beneficiaries:.0f}", help="population × vulnerable share, spread over the 4 personas")
-        ui.card("💡 What changes", ui.esc(text) + f"<br><span class='at-muted'>⚠️ {t('onsite')}</span>", "good" if d.index_delta > 0 else "")
+        ui.card("What changes", ui.esc(text) + f"<br><span class='at-muted'>{t('onsite')}</span>", "good" if d.index_delta > 0 else "")
 
         changed = [u.get("edge_id") or u["new_edge"]["id"] for u in chosen]
         view = st.radio("Map", ["After", "Before"], horizontal=True, key="sim_view",
@@ -60,7 +60,7 @@ def scenario_panel(persona, mode: str) -> None:
         st.caption(legend())
 
         if d.newly_reachable:
-            with st.expander(f"Newly reachable trips ({len(d.newly_reachable)})", expanded=True):
+            with st.expander(f"Newly reachable combinations, modelled ({len(d.newly_reachable)})", expanded=True):
                 st.dataframe([
                     {"from": node_name(G, x["residential"]), "persona": ui.persona_label(x["persona"]),
                      "destination": node_name(G, x["dest"]), "distance": ui.fmt_m(x["length_m"]), "before": x["before"]}
@@ -76,7 +76,7 @@ def main() -> None:
     persona = ui.sidebar()
     upgrades = load_upgrades()
 
-    st.title(f"🏗️ {t('sim_title')}")
+    ui.page_head(t('sim_title'), eyebrow="Planning · Upgrade options")
 
     guide.panel("pages/5_🏗️_Upgrade_Simulator.py")
     mode = st.radio("Mode", ["operate", "design"], horizontal=True,
@@ -85,7 +85,7 @@ def main() -> None:
                     key="sim_mode")
     st.session_state["mode"] = mode
     if mode == "design":
-        st.info("🏗️ **Pre-construction review** — design-only options (e.g. new link paths in a draft masterplan) are enabled. "
+        st.info("**Pre-construction review** — design-only options (e.g. new link paths in a draft masterplan) are enabled. "
                 "Changing a drawing is far cheaper than rebuilding a path.")
     st.caption("Cost uses relative tiers only (low / medium / high) — never real RM construction costs. "
                "Simulated upgrades are assumed passable once built. " + t("onsite"))
@@ -96,13 +96,17 @@ def main() -> None:
 
     st.divider()
     st.subheader("Upgrade priority score ranking")
-    st.caption("benefit = Δindex × 10 + newly reachable trips × 3 + beneficiaries ÷ 100;  upgrade priority score = benefit ÷ cost weight (low 1, medium 2.5, high 5).")
+    st.caption("benefit = Δ Access Score × 10 + newly reachable combinations (modelled) × 3 + estimated residents (model) ÷ 100; "
+               "upgrade priority score = benefit ÷ cost weight (low 1, medium 2.5, high 5). Not a financial return.")
     df = cached.ranking(ui.overlay_key(), mode)
     if df.empty:
         st.info("No candidate upgrades for this mode.")
     else:
         fig = px.bar(df, x="roi", y="id", orientation="h", color="cost_tier", text="roi",
-                     color_discrete_map={"low": "#16A34A", "medium": "#F59E0B", "high": "#DC2626"},
+                     color_discrete_map={"low": "#B9CFCB", "medium": "#6F9692", "high": "#2F5F5C"},
+                     labels={"roi": "Upgrade priority score", "id": "Upgrade", "cost_tier": "Cost tier",
+                             "delta_index": "Δ Access Score", "new_reachable_pairs": "Newly reachable (modelled)",
+                             "beneficiaries": "Estimated residents (model)"},
                      hover_data=["title", "delta_index", "new_reachable_pairs", "beneficiaries"])
         fig.update_layout(yaxis={"categoryorder": "total ascending"}, height=320, margin=dict(l=10, r=10, t=10, b=10))
         st.plotly_chart(fig, width="stretch")
@@ -112,13 +116,14 @@ def main() -> None:
         st.dataframe(df[["rank", "id", "title", "cost_tier", "delta_index", "new_reachable_pairs", "beneficiaries",
                          "avg_detour_reduction_m", "benefit", "roi"]], hide_index=True, width="stretch",
                      column_config={"roi": st.column_config.NumberColumn("upgrade priority score"),
+                                    "delta_index": st.column_config.NumberColumn("Δ Access Score"),
                                     "new_reachable_pairs": st.column_config.NumberColumn("newly reachable (modelled)"),
                                     "beneficiaries": st.column_config.NumberColumn("estimated residents (model)")})
         with st.expander("Top 5 — plain-language explanations", expanded=False):
             for _, row in df.head(5).iterrows():
                 st.markdown(f"**#{row['rank']} {row['id']}** — {row['explanation']}  \n_{t('onsite')}_")
 
-        st.markdown("#### 🛠️ Create work order")
+        st.markdown("#### Create work order")
         c1, c2 = st.columns([3, 1])
         wo_target = c1.selectbox("Upgrade", df["id"].tolist(), format_func=lambda i: f"{i} · {by_id.get(i, {}).get('title', i)}",
                                  key="sim_wo_target")

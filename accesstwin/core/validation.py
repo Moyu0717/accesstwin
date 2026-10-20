@@ -54,7 +54,7 @@ def kpi_rows(fc: dict, cc: dict, bundle=None) -> list[dict]:
         rows += [
             {"KPI": "Access Score before → after (recommended package)",
              "value": f"{d.index_before:.1f} → {d.index_after:.1f}", "status": "model result on fictional demo data"},
-            {"KPI": "Newly reachable trips (recommended package)", "value": str(len(d.newly_reachable)),
+            {"KPI": "Newly reachable combinations, modelled (recommended package)", "value": str(len(d.newly_reachable)),
              "status": "model result on fictional demo data"},
         ]
     rows += [

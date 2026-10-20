@@ -44,8 +44,10 @@ def test_full_demo_script_mock_mode():
     assert "Clinic approach" in _text(home)
     assert "Shortest reference path" in net_html
     assert "Access Score" in net_html
-    priority = home.radio(key="ws_segment").options
-    assert "Clinic approach" in priority[0] and "E7" in priority[0]
+    # 2A-2: the priority list is a column of buttons (ws_row_<edge>), the first row is E7.
+    row_labels = [b.label for b in home.button if b.key and b.key.startswith("ws_row_")]
+    assert row_labels and row_labels[0].startswith("**01 · ")
+    assert "Clinic approach" in row_labels[0] and "E7" in row_labels[0]
     wheel_bar = re.search(r"<span>Wheelchair</span>.*?at-num'>([\d.]+)</span>", net_html, re.S)
     assert wheel_bar and float(wheel_bar.group(1)) < 50
 
@@ -54,8 +56,9 @@ def test_full_demo_script_mock_mode():
     assert "Direct route usable" in _text(elderly)
     wheel = _page(PAGES["1"], persona="wheelchair")
     assert "E7: step 15 cm" in _text(wheel)
-    detour = next(m.value for m in wheel.metric if m.label == "Detour ratio")
-    assert float(detour.rstrip("×")) >= 2.0
+    # 2A-3: the ratio is stated in the conclusion text ("The usable route is 2.4× the reference.").
+    detour = re.search(r"usable route is ([\d.]+)× the reference", _text(wheel))
+    assert detour and float(detour.group(1)) >= 2.0
 
     # 1:00 Evidence — curb photo -> high_curb suggestion -> submit -> guard approves.
     rep = _page(PAGES["2"])

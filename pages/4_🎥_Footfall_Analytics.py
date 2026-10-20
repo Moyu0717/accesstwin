@@ -32,7 +32,7 @@ def main() -> None:
     persona = ui.sidebar()
     G = ui.graph()
 
-    st.title(f"🎥 {t('footfall_title')}")
+    ui.page_head(t('footfall_title'), eyebrow="Evidence · Footfall")
 
     guide.panel("pages/4_🎥_Footfall_Analytics.py")
     st.info("Aggregate counts only: no frames or crops are stored, no face recognition is used, and any real "
@@ -116,18 +116,18 @@ def main() -> None:
         st.dataframe(df, width="stretch", hide_index=True)
 
     st.divider()
-    st.subheader("📹 Camera counts vs expected demand")
+    st.subheader("Camera counts vs expected demand")
 
     _demand = suppressed_demand(ui.graph(), ui.personas(), camera_counts())
     for _d in [d for d in _demand if d.suppressed]:
-        ui.card(f"🚷 Suppressed demand on {_d.edge_id} ({_d.cctv_id})",
+        ui.card(f"Suppressed demand on {_d.edge_id} ({_d.cctv_id})",
                 f"Observed {_d.observed:.0f} pedestrians/day vs about {_d.expected:.0f} expected from the gravity model "
                 f"(ratio {_d.ratio:.2f}). The route has a barrier ({', '.join(_d.barrier_edges)}): "
                 "people may not walk here because they can't.", "bad")
     st.dataframe(demand_frame(_demand), width="stretch", hide_index=True, column_config=ui.DEMAND_COLUMNS)
     st.caption("Daily counts per camera are synthetic demo figures until real CCTV runs are recorded. "
                "See the Planner Dashboard for the full analysis and the Planning Brief.")
-    ui.page_link("pages/6_📊_Planner_Dashboard.py", label="Open the Planner Dashboard", icon="📊")
+    ui.page_link("pages/6_📊_Planner_Dashboard.py", label="Open the Planner Dashboard →")
 
     ui.disclaimer()
 

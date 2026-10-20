@@ -114,4 +114,8 @@ def demand_frame(rows: list[EdgeDemand], covered_only: bool = True) -> pd.DataFr
         "ratio": _num(r.ratio, 2), "status": r.status,
         "barriers on route": ", ".join(r.barrier_edges) or "—",
     } for r in rows if (r.cctv_id or not covered_only)]
-    return pd.DataFrame(data)
+    df = pd.DataFrame(data)
+    for col in ("observed", "expected", "ratio"):  # "—" mixed with numbers: keep one display type per column
+        if col in df and df[col].map(lambda v: isinstance(v, str)).any():
+            df[col] = df[col].map(str)
+    return df

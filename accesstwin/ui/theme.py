@@ -106,6 +106,30 @@ a:focus-visible, button:focus-visible, [role="tab"]:focus-visible, input:focus-v
 .at-title {{font-size:30px;line-height:1.12;letter-spacing:-1px;font-weight:400;margin:4px 0 6px}}
 .at-sub {{font-size:14px;color:var(--text-secondary)}}
 .at-section {{border-top:1px solid #E4E5DC;padding:12px 0 6px}}
+.at-hero {{position:relative;margin:10px 0 4px;aspect-ratio:4/3;overflow:hidden;border-radius:4px;background:#E9ECE1}}
+.at-hero img {{width:100%;height:100%;object-fit:cover;display:block}}
+.at-hero-chip {{position:absolute;left:8px;top:8px;background:rgba(251,251,248,.95);border:1px solid #D8D2C6;
+  padding:3px 8px;font-size:12.5px;font-weight:600;color:var(--state-pending)}}
+.at-hero-chip.approved {{color:var(--state-verified)}} .at-hero-chip.rejected {{color:var(--text-secondary)}}
+.at-hero-cap {{font-size:13px;color:var(--text-primary);margin-top:4px}}
+.at-hero-credit {{font-size:12px;color:var(--text-secondary)}}
+.at-route {{margin:4px 0 6px;padding-left:0;list-style:none;font-size:13.5px}}
+.at-route li {{display:flex;gap:8px;justify-content:space-between;border-bottom:1px solid #EEEFE7;padding:3px 0}}
+.at-route li .at-num {{margin-left:auto;white-space:nowrap;color:var(--text-secondary)}}
+.at-mono {{font-family:ui-monospace,Consolas,monospace;font-size:12.5px;color:var(--text-secondary)}}
+.at-hero-empty {{margin:10px 0 8px;aspect-ratio:4/3;border:1px dashed #C9CCBF;border-radius:4px;display:grid;
+  place-items:center;color:var(--text-secondary);font-size:14px;background:#F3F4EE}}
+.st-key-ws_rows button {{justify-content:flex-start;text-align:left;border-radius:0;border:0;border-left:3px solid transparent;
+  border-bottom:1px solid #E4E5DC;background:transparent;padding:8px 10px;min-height:44px}}
+.st-key-ws_rows button p {{text-align:left;margin:0;font-size:13px;color:var(--text-secondary);line-height:1.35}}
+.st-key-ws_rows button p strong {{color:var(--text-primary);font-size:14px;font-weight:600}}
+.st-key-ws_rows button[kind="primary"], .st-key-ws_rows button[data-testid="stBaseButton-primary"] {{
+  background:#F0EEE6 !important;border-left:3px solid #B75D37 !important;color:var(--text-primary) !important}}
+.st-key-ws_rows button[data-testid="stBaseButton-primary"] p {{color:var(--text-secondary) !important}}
+.st-key-ws_rows button[data-testid="stBaseButton-primary"] p strong {{color:var(--text-primary) !important}}
+.stButton button, [data-testid="stPageLink"] a {{white-space:nowrap}}
+.st-key-ws_rows .stButton button {{white-space:normal}}
+.st-key-ws_rows button > div, .st-key-ws_rows button [data-testid="stMarkdownContainer"] {{justify-content:flex-start;width:100%;text-align:left}}
 .at-big {{font-size:24px;font-weight:400;letter-spacing:-.5px;font-variant-numeric:tabular-nums}}
 .at-big small {{font-size:13px;color:var(--text-secondary);letter-spacing:0}}
 .at-grid2 {{display:grid;grid-template-columns:1fr 1fr;gap:14px}} .at-grid2>div+div {{border-left:1px solid #E2E5D9;padding-left:14px}}
@@ -119,7 +143,7 @@ table.at-cmp td {{padding:11px 8px;border-bottom:1px solid #E4E7DB}}
 table.at-cmp td.sc {{color:var(--accent-strong);background:#F6F0E6}}
 .at-cmp-wrap {{overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch}}
 .at-h2 {{font-size:24px;font-weight:400;letter-spacing:-.5px;line-height:1.2;margin:2px 0 6px;color:var(--text-primary)}}
-.at-mobile-only, .st-key-ws_mobile_action {{display:none}}
+.at-mobile-only, .st-key-ws_mobile_action, .st-key-ws_hero_mob {{display:none}}
 /* Secondary navigation links look like outlined buttons (stage tabs in the project bar stay plain). */
 [data-testid="stMain"] [data-testid="stPageLink"] a {{border:1px solid var(--border-default);background:var(--surface-panel);padding:0 12px}}
 [data-testid="stHorizontalBlock"]:has(.at-tabs) [data-testid="stPageLink"] a {{border:none;background:transparent}}
@@ -128,7 +152,14 @@ table.at-cmp td.sc {{color:var(--accent-strong);background:#F6F0E6}}
   border-bottom:2px solid transparent !important}}
 [data-testid="stHorizontalBlock"]:has(.at-tabs) [data-testid="stPopover"] {{display:flex;justify-content:flex-end}}
 /* Legacy cards keep working, restyled with hairlines */
-.at-card {{border:1px solid var(--border-default);border-radius:2px;padding:14px 16px;background:var(--surface-panel);margin-bottom:10px}}
+.at-card {{border:0;border-top:1px solid var(--border-default);border-left:3px solid var(--border-default);border-radius:0;padding:10px 14px;background:transparent;margin-bottom:10px}}
+.at-pagehead {{margin:4px 0 10px}}
+.at-grid4 {{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:8px 0 12px}}
+@media (max-width:640px) {{.at-grid4 {{grid-template-columns:repeat(2,minmax(0,1fr))}}}}
+.at-pagetitle {{font-size:24px !important;font-weight:400 !important;letter-spacing:-.5px;margin:2px 0 4px !important;padding:0 !important}}
+[data-testid="stHeading"] h3, [data-testid="stMarkdownContainer"] h4 {{font-size:17px;font-weight:600;letter-spacing:-.2px}}
+[data-testid="stHeading"]:has(h3) {{border-top:1px solid var(--border-default);padding-top:12px;margin-top:8px}}
+[data-testid="stHeading"] h3 {{padding:0}}
 .at-bad {{border-left:3px solid var(--state-blocked)}} .at-good {{border-left:3px solid var(--state-verified)}}
 .at-warn {{border-left:3px solid var(--state-pending)}}
 .at-badge {{display:inline-block;padding:2px 10px;border-radius:2px;font-size:12px;font-weight:600}}
@@ -144,11 +175,16 @@ table.at-cmp td.sc {{color:var(--accent-strong);background:#F6F0E6}}
   [data-testid="stColumn"]:has(.at-ws-score) {{order:-3}}
   .at-mobile-only, .st-key-ws_mobile_action {{display:block}}
   .st-key-ws_top_action {{display:none}}
-  [data-testid="stColumn"]:has(.at-brand) {{display:none}}
+  [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] .at-tabs) > [data-testid="stColumn"]:has(.at-brand)
+    {{flex:0 0 30px !important;min-width:30px !important}}
+  .st-key-ws_hero_desk {{display:none}} .st-key-ws_hero_mob {{display:block}}
   table.at-cmp {{min-width:620px}}
   .at-title {{font-size:26px}} .at-score {{font-size:44px}}
   .at-bar {{gap:10px}} .at-project, .at-brand-text {{display:none}}
   [data-testid="stPageLink"] a {{justify-content:center;padding:0 2px}} [data-testid="stPageLink"] p {{font-size:13px}}
+  .at-tab-active {{font-size:13px}}
+  [data-testid="stHorizontalBlock"]:has(.at-tabs) {{gap:4px !important}}
+  [data-testid="stColumn"]:has(.at-ws-map) iframe {{height:540px !important}}
   [data-testid="stPopover"] button {{padding:0 6px}} [data-testid="stPopover"] button p {{white-space:nowrap;font-size:14px}}
 }}
 </style>

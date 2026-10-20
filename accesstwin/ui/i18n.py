@@ -13,11 +13,11 @@ LABELS: dict[str, dict[str, str]] = {
         "app_title": "AccessTwin",
         "tagline": "A township accessibility digital twin — which segment to fix first, at what cost tier, and who gains access.",
         "fictional": "Fictional demo layout (Elmina-style Demo Township). Not a real site.",
-        "persona": "Persona",
+        "persona": "Profile",
         "language": "Language",
         "mock_badge": "DEMO MODE — photo AI uses the demo classifier (no API key)",
         "live_badge": "Live AI — Groq vision configured",
-        "persona_assumption": "Persona rules are demo assumptions — not a design standard.",
+        "persona_assumption": "Profile rules are demo assumptions — not a design standard.",
         "disclaimer": (
             "AccessTwin is a planning aid, not proof of compliance with accessibility design standards "
             "(e.g. MS 1184). All routes and upgrades require on-site verification. AI output is a suggestion "
@@ -35,10 +35,10 @@ LABELS: dict[str, dict[str, str]] = {
         "show_ids": "Show segment IDs on maps",
         "guide_start": "▶ Guided demo (3 min)",
         "legend": (
-            "**Segments:** solid blue = verified accessible · solid orange-red with ✖ = blocked · grey dashed = unverified · "
-            "thin dotted orange-red = impassable for the selected persona · amber thick = upgraded (simulator). "
-            "**Points:** light-blue circles = homes · coloured circles = destinations (hover for the name) · "
-            "orange dot = pending report."
+            "**Lines:** warm grey = recorded segment · copper = shortest reference path · teal dashed = route this "
+            "profile can use · grey dashed = unverified record · dotted red = impassable for the selected profile · "
+            "red ✖ = obstruction or closure · amber halo = simulated upgrade. **Points:** hollow circles = homes · "
+            "filled circles = destinations · ! = barrier or pending report. Fictional layout, not to scale."
         ),
         # navigation + page titles
         "nav_overview": "Overview", "nav_route": "Route Planner", "nav_report": "Report Obstacle",

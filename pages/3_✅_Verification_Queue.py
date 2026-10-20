@@ -15,11 +15,12 @@ def main() -> None:
     G = ui.graph()
     P = ui.personas()
 
-    st.title(f"✅ {t('queue_title')}")
+    ui.page_head(t('queue_title'), eyebrow="Review · Reports and site checks")
 
     guide.panel("pages/3_✅_Verification_Queue.py")
-    st.caption("Human-in-the-loop: AI suggestions never change the map by themselves. Approving a report marks the "
-               "segment **blocked** (stored as an overlay — the base map data is never modified).")
+    st.caption("Human-in-the-loop: AI suggestions never change the map by themselves. Approving a report **confirms a "
+               "specific obstacle**; only the profiles it affects are re-routed. A full closure is recorded only by an "
+               "explicit site check. Stored as an overlay — the base map data is never modified.")
 
     flash = st.session_state.pop("vq_flash", None)
     if flash:
@@ -46,7 +47,7 @@ def main() -> None:
 
     # ---- Section 1: pending obstacle reports -----------------------------------
     pending = store.list_reports("pending")
-    st.subheader(f"📥 Pending obstacle reports ({len(pending)})")
+    st.subheader(f"Pending obstacle reports ({len(pending)})")
     if not pending:
         st.info("No pending reports. New reports from the Report Obstacle page appear here.")
     for r in pending:
@@ -67,20 +68,20 @@ def main() -> None:
                 f"Evidence: {ai.get('visible_evidence') or '—'}"
             )
             if ai.get("needs_onsite_measurement"):
-                c2.caption("📏 Measure on site: " + ", ".join(ai["needs_onsite_measurement"]))
-            if c3.button("✅ Approve", help="Confirms this obstacle on the segment; only the affected profiles are rerouted", key=f"vq_ok_{r['id']}", type="primary"):
+                c2.caption("Measure on site: " + ", ".join(ai["needs_onsite_measurement"]))
+            if c3.button("Approve", help="Confirms this obstacle on the segment; only the affected profiles are rerouted", key=f"vq_ok_{r['id']}", type="primary"):
                 store.set_report_status(r["id"], "approved")
                 st.session_state["vq_flash"] = (f"Report #{r['id']} approved — obstacle confirmed on {r['edge_id']}. "
                                                 + impact_text(r["edge_id"], G, load_graph()))
                 st.rerun()
-            if c3.button("✖ Reject", key=f"vq_no_{r['id']}"):
+            if c3.button("Reject", key=f"vq_no_{r['id']}"):
                 store.set_report_status(r["id"], "rejected")
                 st.session_state["vq_flash"] = f"Report #{r['id']} rejected — no change to the map."
                 st.rerun()
 
     # ---- Section 2: verify unverified segments ---------------------------------
     st.divider()
-    st.subheader("🔎 Verify unverified segments")
+    st.subheader("Verify unverified segments")
     st.caption("Simulates an on-site check, e.g. by a wheelchair-user representative walking the segment with a guard.")
     unverified = [e for e in iter_edges(G) if e.get("status") == "unverified"]
     if not unverified:
@@ -92,7 +93,7 @@ def main() -> None:
         role = v2.selectbox("Verifier role", ["guard", "admin", "wheelchair-user representative", "senior-citizen representative"],
                             key="vq_role")
         result = v1.radio("Result", ["passable", "not_passable"], horizontal=True,
-                          format_func=lambda x: "Passable → verified accessible" if x == "passable" else "Not passable → blocked",
+                          format_func=lambda x: "Passable → recorded condition confirmed" if x == "passable" else "Not passable → closed for everyone",
                           key="vq_result")
         note = v2.text_input("Note", placeholder="e.g. ramp gradient fine, surface even", key="vq_note")
         if st.button("Record verification", type="primary", key="vq_verify"):

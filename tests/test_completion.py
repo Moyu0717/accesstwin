@@ -169,7 +169,9 @@ def test_arbitrary_upload_in_mock_mode_is_never_a_30_percent_result():
     raw = analyze_photo(b"not-a-real-image", "random_site_photo.jpg")
     assert raw["source"] == "mock"
     page_src = Path(PAGES["2"]).read_text(encoding="utf-8")
-    assert "🧪 Demo classifier" in page_src
+    # V2 polish: the card title no longer carries an emoji (the title text itself is unchanged).
+    assert 'ui.card("Demo classifier"' in page_src
+    assert "🧪" not in page_src
     assert "demo_guess = is_upload and source == \"mock\"" in page_src
     assert "\"confidence\": 0.0" in page_src  # the 0.3 guess is overwritten before display
     assert "Real AI analysis (Groq) runs on the hosted version" in page_src

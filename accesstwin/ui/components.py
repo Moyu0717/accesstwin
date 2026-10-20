@@ -116,7 +116,7 @@ def sidebar(bar: bool = True) -> Persona:
     ps = personas()
     keys = list(ps)
     with st.sidebar:
-        st.markdown(f"### ♿ {t('app_title')}")
+        st.markdown(f"### {t('app_title')}")
         if config.mock_mode():
             st.markdown(
                 f"<span class='at-badge' style='background:#FEF3C7;color:#92400E'>{t('mock_badge')}</span>",
@@ -162,8 +162,21 @@ def sidebar(bar: bool = True) -> Persona:
 
 def disclaimer() -> None:
     st.divider()
-    st.caption(f"⚠️ {t('disclaimer')}")
-    st.caption(f"🔒 {t('pdpa')}")
+    st.caption(t("disclaimer"))
+    st.caption(t("pdpa"))
+
+
+CHIP_TEXT = {"syn": "Synthetic", "sim": "Simulated", "pending": "Pending review"}
+
+
+def page_head(title: str, eyebrow: str = "", sub: str = "", chips: tuple = ("syn",)) -> None:
+    """V2 page heading: eyebrow label, 24 px title, optional subline and status chips (no emoji)."""
+    chip_html = " ".join(f"<span class='at-chip {c}'>{esc(CHIP_TEXT.get(c, c))}</span>" for c in chips)
+    st.markdown(
+        f"<div class='at-pagehead'><div class='at-eyebrow' style='display:flex;justify-content:space-between;gap:8px;"
+        f"flex-wrap:wrap'><span>{esc(eyebrow)}</span><span>{chip_html}</span></div>"
+        f"<h1 class='at-pagetitle'>{esc(title)}</h1>"
+        + (f"<div class='at-muted'>{esc(sub)}</div>" if sub else "") + "</div>", unsafe_allow_html=True)
 
 
 def card(title: str, body: str, kind: str = "") -> None:
@@ -203,6 +216,16 @@ def photo_caption(filename: str) -> str:
     return f"Illustration (placeholder): {label}" if is_placeholder_photo(filename) else label
 
 
+def photo_credit_line(filename: str) -> str:
+    """"Photo: <author>, <licence>, Wikimedia Commons" for credited photos; placeholder label otherwise."""
+    credit = photo_credits().get(filename)
+    if credit and credit.get("author") and credit.get("licence"):
+        return f"Photo: {credit['author']}, {credit['licence']}, {credit.get('source', 'Wikimedia Commons')}"
+    if is_placeholder_photo(filename):
+        return "Illustration (placeholder)"
+    return "Uploaded in this session"
+
+
 def is_placeholder_photo(filename: str) -> bool:
     from accesstwin.core.obstacles import PLACEHOLDER_PHOTOS
 
@@ -228,19 +251,19 @@ def bundle_card(b, key_prefix: str = "bundle", allow_apply: bool = False) -> Non
         return
     d = b.delta
     with st.container(border=True):
-        st.markdown(f"#### 📦 Recommended package: {' + '.join(b.upgrade_ids)}")
-        st.caption(f"Greedy by priority score within a budget of {b.budget:g} cost-weight units "
+        st.markdown(f"#### Recommended package: {' + '.join(b.upgrade_ids)}")
+        st.caption(f"Heuristic (greedy by upgrade priority score, not optimal) within a budget of {b.budget:g} cost-weight units "
                    f"(low 1 · medium 2.5 · high 5); this package uses {b.cost_weight:g}. Relative tiers only — no RM costs.")
         m1, m2, m3, m4 = st.columns(4)
         m1.metric("Package: Access Score", f"{d.index_after:.1f}", f"{d.index_delta:+.1f} (from {d.index_before:.1f})")
-        m2.metric("Package: newly reachable (modelled)", len(d.newly_reachable), help="Resident–persona–destination trips that become practical")
+        m2.metric("Package: newly reachable (modelled)", len(d.newly_reachable), help="Home × profile × destination-type combinations that become reachable (model)")
         m3.metric("Estimated residents (model)", f"{d.beneficiaries:.0f}", help="population × vulnerable share (model estimate)")
-        m4.metric("Wheelchair index", f"{d.persona_after.get('wheelchair', 0):.0f}",
+        m4.metric("Access Score — Wheelchair", f"{d.persona_after.get('wheelchair', 0):.0f}",
                   f"{d.persona_delta().get('wheelchair', 0):+.1f}")
         st.caption("Estimated residents (model) by profile: " + ", ".join(
             f"{persona_short(k)} {v:.0f}" for k, v in d.beneficiaries_by_persona.items()))
         st.markdown(b.explanation)
-        st.caption("⚠️ Requires on-site verification after completion. Model estimate on fictional demo data.")
+        st.caption("Requires on-site verification after completion. Model estimate on fictional demo data.")
         if allow_apply and st.button("Load this package into the scenario", key=f"{key_prefix}_apply"):
             st.session_state["sim_selected"] = list(b.upgrade_ids)
             st.session_state["sim_multiselect"] = list(b.upgrade_ids)

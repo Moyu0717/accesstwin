@@ -18,10 +18,10 @@ def main() -> None:
     persona = ui.sidebar()
     G = ui.graph()
 
-    st.title(f"📸 {t('report_title')}")
+    ui.page_head(t('report_title'), eyebrow="Resident · Report an obstacle")
 
     guide.panel("pages/2_📸_Report_Obstacle.py")
-    st.info(f"📷 {t('photo_notice')}")
+    st.info(t("photo_notice"))
     st.caption("The AI result is only a **suggestion pending review**. The map changes only after a guard or admin "
                "approves the report in the Verification Queue.")
 
@@ -74,18 +74,18 @@ def main() -> None:
         if ai.get("notice"):
             st.warning(ai["notice"])
         if demo_guess:
-            ui.card("🧪 Demo classifier", "Real AI analysis (Groq) runs on the hosted version with an API key. "
+            ui.card("Demo classifier", "Real AI analysis (Groq) runs on the hosted version with an API key. "
                     "In this demo your own photo is not analysed — please choose the category below.", "warn")
             ai.update({"obstacle_type": "other", "confidence": 0.0, "visible_evidence": "",
                        "affected_personas": [], "needs_onsite_measurement": []})
-        with st.expander("✏️ Confirm or correct the category", expanded=demo_guess or source == "manual_required"):
+        with st.expander("Confirm or correct the category", expanded=demo_guess or source == "manual_required"):
             ai["obstacle_type"] = st.selectbox("Obstacle type", OBSTACLE_TYPES, key=f"ro_manual_type_{cache_key[7:19]}",
                                                index=OBSTACLE_TYPES.index(ai.get("obstacle_type", "other")))
             ai["severity"] = st.selectbox("Severity", SEVERITIES, key=f"ro_manual_sev_{cache_key[7:19]}",
                                           index=SEVERITIES.index(ai.get("severity", "medium")))
-            ai["affected_personas"] = st.multiselect("Affected personas", PERSONA_KEYS, key=f"ro_manual_personas_{cache_key[7:19]}",
+            ai["affected_personas"] = st.multiselect("Affected profiles", PERSONA_KEYS, key=f"ro_manual_personas_{cache_key[7:19]}",
                                                      default=ai.get("affected_personas", []),
-                                                     format_func=ui.persona_label)
+                                                     format_func=ui.persona_short)
         if demo_guess:
             st.markdown(f"#### Category (your choice): {ai['obstacle_type'].replace('_', ' ')}")
         else:
@@ -94,10 +94,10 @@ def main() -> None:
             b.metric("Severity", ai["severity"])
             c.metric("Confidence", f"{float(ai.get('confidence', 0)):.0%}")
             st.write("**Visible evidence:** " + (ai.get("visible_evidence") or "—"))
-        st.write("**Affected personas:** " + (", ".join(ui.persona_label(p) for p in ai.get("affected_personas", [])) or "—"))
+        st.write("**Affected profiles:** " + (", ".join(ui.persona_short(p) for p in ai.get("affected_personas", [])) or "—"))
         needs = ai.get("needs_onsite_measurement") or []
         if needs:
-            st.warning("📏 Needs on-site measurement: " + ", ".join(needs))
+            st.warning("Needs on-site measurement: " + ", ".join(needs))
 
     st.divider()
     edges = sorted(iter_edges(G), key=lambda e: int(e["id"][1:]) if e["id"][1:].isdigit() else 999)
@@ -121,7 +121,7 @@ def main() -> None:
             photo_path = (config.PHOTOS_DIR / filename).relative_to(config.ROOT).as_posix()
         rid = store.add_report(edge_id, role, photo_path, ai)
         st.success(f"Report #{rid} submitted for {edge_id} — status **pending**. A guard/admin will review it in the Verification Queue.")
-        ui.page_link("pages/3_✅_Verification_Queue.py", label="Open the Verification Queue", icon="✅")
+        ui.page_link("pages/3_✅_Verification_Queue.py", label="Open the Verification Queue →")
 
     ui.disclaimer()
 

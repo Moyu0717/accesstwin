@@ -215,7 +215,7 @@ def test_e22_is_not_assessed_and_has_no_scenario_or_benefit():
     assert ws.compare_rows(okey, loc, "wheelchair") == []
 
     at = _page("0")
-    at.radio(key="ws_segment").set_value("E22").run()
+    at.button(key="ws_row_E22").click().run()  # 2A-2: priority rows are buttons, clicking selects the segment
     assert not at.exception, [e.message for e in at.exception]
     keys = _keys(at)
     assert "ws_preview_top" not in keys and "ws_preview_bottom" not in keys

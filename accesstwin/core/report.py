@@ -75,13 +75,13 @@ th{{background:#F0F7F6}} .big{{font-size:44px;font-weight:700;color:#0F766E}} .m
 <div class="muted">{_e(G.graph.get('meta', {}).get('name', 'Demo Township'))} — fictional demo layout · generated {datetime.now():%Y-%m-%d %H:%M} · mode: {_e(mode)}</div>
 <h2>Access Score (higher is better)</h2>
 <div class="big">{scores.index:.0f}<span style="font-size:20px"> / 100</span></div>
-<table><tr><th>Persona</th><th>Index</th></tr>{persona_rows}</table>
+<table><tr><th>Profile</th><th>Access Score</th></tr>{persona_rows}</table>
 <h3>Gap matrix (residential × persona, 0–100)</h3>
 <table><tr><th>Residential</th>{gap_head}</tr>{gap_rows}</table>
 {_scenario_html(scenario)}
 {_bundle_html(bundle)}
 <h2>Top 5 recommended upgrades (upgrade priority score = benefit ÷ cost tier)</h2>
-<table><tr><th>Rank</th><th>Upgrade</th><th>Cost tier</th><th>Δ index</th><th>Newly reachable (modelled)</th><th>Estimated residents (model)</th><th>Priority score</th></tr>{up_rows}</table>
+<table><tr><th>Rank</th><th>Upgrade</th><th>Cost tier</th><th>Δ Access Score</th><th>Newly reachable (modelled)</th><th>Estimated residents (model)</th><th>Upgrade priority score</th></tr>{up_rows}</table>
 <h2>Suppressed-demand segments</h2>
 <p class="muted">Observed CCTV footfall far below the gravity-model expectation on a route with a barrier: people may not walk here because they can't. Edges without CCTV are not inferred.</p>
 <table><tr><th>Edge</th><th>Camera</th><th>Observed</th><th>Expected</th><th>Ratio</th><th>Barriers</th></tr>{sup_rows}</table>
@@ -119,7 +119,7 @@ def _bundle_html(bundle) -> str:
     by = ", ".join(f"{_e(k.replace('_', ' '))} {v:.0f}" for k, v in d.beneficiaries_by_persona.items())
     return (f"<h2>Recommended package: {_e(' + '.join(bundle.upgrade_ids))}</h2>"
             f"<p>Within a budget of {bundle.budget:g} cost-weight units (uses {bundle.cost_weight:g}). Access Score "
-            f"{d.index_before:.1f} → {d.index_after:.1f} ({d.index_delta:+.1f}); {len(d.newly_reachable)} new trips; "
+            f"{d.index_before:.1f} → {d.index_after:.1f} ({d.index_delta:+.1f}); {len(d.newly_reachable)} newly reachable combinations (modelled); "
             f"≈{d.beneficiaries:.0f} residents who need extra mobility support benefit ({by}).</p>"
             f"<p class='ex'>{_e(bundle.explanation)} <i>Requires on-site verification after completion.</i></p>")
 
