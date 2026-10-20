@@ -64,12 +64,14 @@ def test_full_demo_script_mock_mode():
     rep = _page(PAGES["2"])
     rep.radio(key="ro_src").set_value("Use a sample photo").run()
     rep.selectbox(key="ro_sample").set_value("kerb_high_granite_step.jpg").run()
+    rep.button(key="ro_analyse").click().run()  # 2B: analysis only on the explicit click
     assert "Suggested type: high curb" in _text(rep)
     rep.selectbox(key="ro_edge").set_value("E7").run()
     rep.button(key="ro_submit").click().run()
     assert not rep.exception
     rid = max(r["id"] for r in store.list_reports("pending"))
     queue = _page(PAGES["3"])
+    queue.button(key=f"vq_row_{rid}").click().run()  # 2B: select the report, then accept it
     queue.button(key=f"vq_ok_{rid}").click().run()
     assert not queue.exception
     # X2: approval confirms the 15 cm step as an obstacle; E7 is not closed for everyone.

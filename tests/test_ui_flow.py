@@ -46,6 +46,7 @@ def test_report_approve_confirms_obstacle_and_reroutes():
     at = _run("2")
     at.radio(key="ro_src").set_value("Use a sample photo").run()
     at.selectbox(key="ro_sample").set_value("kerb_high_granite_step.jpg").run()
+    at.button(key="ro_analyse").click().run()  # 2B: analysis only on the explicit click
     assert any("Suggested type: high curb" in m.value for m in at.markdown)
     at.selectbox(key="ro_edge").set_value("E7").run()
     at.radio(key="ro_role").set_value("resident").run()
@@ -56,6 +57,7 @@ def test_report_approve_confirms_obstacle_and_reroutes():
 
     # 2. Verification Queue: approve -> the 15 cm step is confirmed as an obstacle (X2); E7 is not closed for everyone.
     at = _run("3")
+    at.button(key=f"vq_row_{rid}").click().run()  # 2B: the detail pane shows the selected report
     at.button(key=f"vq_ok_{rid}").click().run()
     assert not at.exception
     assert any("E7" in s.value for s in at.success)

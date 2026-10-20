@@ -106,7 +106,9 @@ def main() -> None:
                 st.caption(ui.photo_caption(name))
                 if st.button("Use this photo", key=f"ro_pick_{name}", help=f"Select {name}"):
                     st.session_state["ro_sample"] = name
-        filename = st.selectbox("Selected sample photo", samples, key="ro_sample")
+        if st.session_state.get("ro_sample") not in gallery:
+            st.session_state["ro_sample"] = "kerb_high_granite_step.jpg" if "kerb_high_granite_step.jpg" in gallery else gallery[0]
+        filename = st.selectbox("Selected sample photo", gallery, key="ro_sample")
         image_bytes = (config.PHOTOS_DIR / filename).read_bytes()
         mime = "image/png" if filename.lower().endswith(".png") else "image/jpeg"
     elif src == "Upload a photo":
@@ -155,7 +157,7 @@ def main() -> None:
                 if demo_guess:
                     original = {**original, "obstacle_type": "other", "confidence": 0.0, "affected_personas": []}
     base = original or {"obstacle_type": "other", "severity": "medium", "affected_personas": []}
-    kid = (cache_key or "nophoto")[7:19]
+    kid = (cache_key or "nophoto")[7:19] + ("_ai" if original else "")  # new widgets once a suggestion exists
     c1, c2, c3 = st.columns(3)
     otype = c1.selectbox("Obstacle type", OBSTACLE_TYPES, key=f"ro_manual_type_{kid}",
                          index=OBSTACLE_TYPES.index(base.get("obstacle_type", "other")),

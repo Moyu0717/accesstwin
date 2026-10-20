@@ -304,3 +304,38 @@ def test_live_groq_vision_on_sample_photo(monkeypatch):
     assert result["obstacle_type"] in OBSTACLE_TYPES
     assert result["severity"] in {"low", "medium", "high"}
     assert 0.0 <= result["confidence"] <= 1.0
+
+
+# ---------------------------------------------------------------- Round 2B: analysis is explicit (no call on render)
+
+def test_report_page_renders_and_picks_sample_without_calling_groq(groq_env, monkeypatch):
+    """With a key present, the Report page must not call the vision API until "Analyse photo" is clicked."""
+    from streamlit.testing.v1 import AppTest
+
+    calls: list[int] = []
+
+    def recording_groq_call(jpeg_bytes, client=None):
+        calls.append(len(jpeg_bytes))
+        return json.dumps(VALID_REPLY)
+
+    monkeypatch.setattr(obstacles, "_groq_call", recording_groq_call)
+    page = config.ROOT / "pages" / next(p.name for p in (config.ROOT / "pages").glob("2_*.py"))
+    at = AppTest.from_file(str(page), default_timeout=90)
+    at.run()
+    at.radio(key="ro_src").set_value("Use a sample photo").run()
+    at.selectbox(key="ro_sample").set_value("kerb_high_granite_step.jpg").run()
+    assert not at.exception
+    assert calls == [], "the vision API was called without a click"
+    at.button(key="ro_analyse").click().run()
+    assert not at.exception
+    assert len(calls) == 1
+    assert any("Groq ·" in m.value for m in at.markdown)
+
+
+def test_report_page_source_calls_analyze_only_inside_the_analyse_button():
+    """Static guard: the only analyze_photo(image_bytes ...) call in the Report page sits after the ro_analyse button."""
+    page = next((config.ROOT / "pages").glob("2_*.py"))
+    src = page.read_text(encoding="utf-8")
+    assert src.count("analyze_photo(image_bytes") == 1
+    button = src.index('if st.button("Analyse photo", key="ro_analyse"):')
+    assert button < src.index("analyze_photo(image_bytes")

@@ -159,6 +159,8 @@ def _ensure_report_columns(conn: sqlite3.Connection, key: str) -> None:
                 conn.execute(f"ALTER TABLE reports ADD COLUMN {col} {typ}")
         conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS ux_reports_token ON reports(token)")
         conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS ux_reports_idem ON reports(idem_key)")
+        for (rid,) in conn.execute("SELECT id FROM reports WHERE token IS NULL").fetchall():
+            conn.execute("UPDATE reports SET token=? WHERE id=?", (new_token(), rid))  # legacy rows get a code
         _columns_ok.add(key)
 
 
@@ -305,6 +307,8 @@ def triage_report(report_id: int, action: str, reason: str = "", duplicate_of: i
     r = get_report(report_id)
     if r is None:
         raise ValueError(f"no report {report_id}")
+    if r["status"] != "pending":
+        raise ValueError(f"Report #{report_id} was already decided ({r.get('triage') or r['status']}).")
     reason = (reason or "").strip()[:500]
     if action == "reject" and not reason:
         raise ValueError("A reason is required to reject a report.")

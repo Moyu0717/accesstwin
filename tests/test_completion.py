@@ -115,9 +115,11 @@ def _sample_names() -> list[str]:
     return sorted(p.name for p in config.PHOTOS_DIR.glob("*") if p.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"})
 
 
-def test_report_page_has_an_analyse_button_per_sample_photo():
+def test_report_page_has_a_pick_button_per_sample_photo():
     store.reset_demo()
     at = _page("2")
+    # 2B: the gallery buttons only SELECT a sample; the gallery is shown once "Use a sample photo" is chosen.
+    at.radio(key="ro_src").set_value("Use a sample photo").run()
     keys = {b.key: b for b in at.button}
     names = _sample_names()
     assert names, "bundled sample photos are missing"
@@ -125,7 +127,10 @@ def test_report_page_has_an_analyse_button_per_sample_photo():
     gallery = [n for n in names if n in credits] or names  # credited photos replace placeholders in the gallery
     for name in gallery:
         assert f"ro_pick_{name}" in keys, name
-        assert keys[f"ro_pick_{name}"].label == "Analyse"
+        assert keys[f"ro_pick_{name}"].label == "Use this photo"
+    # Selecting is not analysing: the analyse button is there, but no suggestion has been produced yet.
+    assert "ro_analyse" in keys
+    assert not any("Suggested type" in m.value for m in at.markdown)
     # every gallery photo that is third-party carries its author and licence in the caption (credits.json v2)
     for name in gallery:
         if name in credits:
@@ -137,7 +142,12 @@ def test_clicking_blocked_ramp_sample_shows_suggestion():
     at = _page("2")
     key = "pavement_blocked_parked_cars.jpg"
     assert key in ui.photo_credits()
+    at.radio(key="ro_src").set_value("Use a sample photo").run()
     at.button(key=f"ro_pick_{key}").click().run()
+    assert not at.exception
+    # 2B: picking a photo does not analyse it; the suggestion appears after "Analyse photo" is clicked.
+    assert not any("Suggested type" in m.value for m in at.markdown)
+    at.button(key="ro_analyse").click().run()
     assert not at.exception
     assert any("Suggested type: blocked ramp" in m.value for m in at.markdown)
 
@@ -474,12 +484,13 @@ def _app_nav_list() -> list[ast.Tuple]:
     raise AssertionError("NAV list not found in app.py")
 
 
-def test_app_registers_ten_pages_with_network_first_and_hidden_nav():
+def test_app_registers_eleven_pages_with_network_first_and_hidden_nav():
     src = (ROOT / "app.py").read_text(encoding="utf-8")
     assert "st.navigation(" in src and "st.Page(" in src
     assert 'position="hidden"' in src  # V2 project bar replaces the default page list
     nav = _app_nav_list()
-    assert len(nav) == 10
+    assert len(nav) == 11  # 2B adds Track my report (nav_track) as the last page
+    assert nav[-1].elts[1].value == "nav_track"
     assert nav[0].elts[1].value == "stage_network"
     assert [e.elts[1].value for e in nav[1:3]] == ["stage_compare", "stage_deliver"]
     for entry in nav:
