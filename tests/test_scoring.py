@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import pytest
 
-from accesstwin.core.graph import build_graph, load_township
+from accesstwin import config
+from accesstwin.core import store
+from accesstwin.core.graph import build_graph, load_graph, load_township
 from accesstwin.core.personas import load_personas
 from accesstwin.core.scoring import compute_scores, detour_penalty, pair_score
 
@@ -71,9 +73,23 @@ def test_unreachable_pairs_non_empty(result):
     assert len(result.unreachable_pairs) > 0
 
 
-def test_unreachable_pairs_include_wheelchair_grocery(result):
+@pytest.fixture
+def seeded_result(tmp_path, monkeypatch, personas):
+    """Score on the seeded overlay (approved SR2 obstructs E20 for wheelchair users; X2)."""
+    monkeypatch.setattr(config, "DB_PATH", tmp_path / "scoring.db")
+    store.reset_demo()
+    return compute_scores(load_graph(), personas)
+
+
+def test_unreachable_pairs_include_wheelchair_grocery(seeded_result):
+    hits = [p for p in seeded_result.unreachable_pairs if p.category == "grocery" and p.persona == "wheelchair"]
+    assert hits, "expected wheelchair grocery gap (E12 broken + E20 obstructed by parked cars)"
+
+
+def test_base_graph_has_no_wheelchair_grocery_gap(result):
+    """Without the seed overlay E20 is open, so the grocery gap only appears after the SR2 obstruction."""
     hits = [p for p in result.unreachable_pairs if p.category == "grocery" and p.persona == "wheelchair"]
-    assert hits, "expected wheelchair grocery gap (E12 broken + E20 blocked)"
+    assert hits == []
 
 
 # ---------- pair score: R1 -> clinic, wheelchair ----------

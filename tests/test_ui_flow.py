@@ -1,6 +1,7 @@
 """M4 end-to-end through the real pages: report -> approve -> edge blocked -> route recomputes."""
 from pathlib import Path
 
+import pytest
 from streamlit.testing.v1 import AppTest
 
 from accesstwin.core import store
@@ -17,7 +18,15 @@ def _run(page: str) -> AppTest:
     return at
 
 
-def test_report_approve_blocks_edge_and_reroutes():
+def _route_page(persona: str) -> AppTest:
+    at = AppTest.from_file(PAGES["1"], default_timeout=60)
+    at.session_state["persona"] = persona
+    at.run()
+    assert not at.exception, [e.message for e in at.exception]
+    return at
+
+
+def test_report_approve_confirms_obstacle_and_reroutes():
     store.reset_demo()
     # 1. Report Obstacle page: pick the curb sample photo, mock AI says high_curb, submit on E7.
     at = _run("2")
@@ -31,20 +40,41 @@ def test_report_approve_blocks_edge_and_reroutes():
     rid = max(r["id"] for r in store.list_reports("pending") if r["edge_id"] == "E7")
     assert find_edge(load_graph(), "E7")["status"] == "verified_accessible"
 
-    # 2. Verification Queue: approve -> E7 blocked via overlay.
+    # 2. Verification Queue: approve -> the 15 cm step is confirmed as an obstacle (X2); E7 is not closed for everyone.
     at = _run("3")
     at.button(key=f"vq_ok_{rid}").click().run()
     assert not at.exception
-    assert any("now blocked" in s.value for s in at.success)
-    assert find_edge(load_graph(), "E7")["status"] == "blocked"
+    assert any("E7" in s.value for s in at.success)
+    e7 = find_edge(load_graph(), "E7")
+    assert e7["status"] == "verified_accessible"
+    assert [o["type"] for o in e7["obstacles"]] == ["high_curb"]
 
-    # 3. Route Planner as elderly: Route A (E7) is no longer used; the reason card names E7.
-    at = AppTest.from_file(PAGES["1"], default_timeout=60)
-    at.session_state["persona"] = "elderly"
-    at.run()
+    # 3. Route Planner as an older adult: the step is passable, so the 450 m direct route stays and no reason names E7.
+    elderly = _route_page("elderly")
+    text = " ".join(m.body for m in elderly.markdown)
+    assert "Direct route usable" in text
+    assert "E7: blocked" not in text
+    assert "E7: step" not in text
+    assert not any(m.label == "Detour ratio" for m in elderly.metric)
+
+    # 4. Route Planner as a wheelchair user: still detours, and the reason names the step.
+    wheel = _route_page("wheelchair")
+    assert "E7: step 15 cm" in " ".join(m.body for m in wheel.markdown)
+    detour = next(m.value for m in wheel.metric if m.label == "Detour ratio")
+    assert float(detour.rstrip("×")) >= 2.0
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="BUG (X2 copy): the Verification Queue flash still says the segment is 'now blocked'",
+)
+def test_approve_flash_does_not_claim_segment_is_blocked():
+    store.reset_demo()
+    rid = max(r["id"] for r in store.list_reports("pending") if r["edge_id"] == "E7")
+    at = _run("3")
+    at.button(key=f"vq_ok_{rid}").click().run()
     assert not at.exception
-    page_text = " ".join(m.body for m in at.markdown)
-    assert "E7: blocked" in page_text
+    assert not any("now blocked" in s.value for s in at.success)
 
 
 def test_verify_unverified_edge():

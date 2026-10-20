@@ -244,7 +244,7 @@ def _wheelchair_route():
     return route(load_graph(), "R1", "D_CLINIC", PERSONAS["wheelchair"])
 
 
-def test_work_order_verification_repairs_e7_and_reopens_on_block(isolated_db):
+def test_work_order_verification_repairs_e7_and_keeps_status_accessible(isolated_db):
     e7 = lambda: next(e for e in load_graph().edges(keys=True, data=True) if e[2] == "E7")[3]
 
     oid = store.add_work_order("U1")
@@ -266,10 +266,28 @@ def test_work_order_verification_repairs_e7_and_reopens_on_block(isolated_db):
     assert res.direct_reachable is True
     assert res.length_m == pytest.approx(450)
 
-    # A later approved obstacle report on E7 blocks it again (latest event wins).
+    # X2: the repair clears the approved high_curb obstacle it resolves (U1 resolves high_curb).
     rid = store.add_report("E7", "resident", None, {"obstacle_type": "high_curb"})
     store.set_report_status(rid, "approved")
-    assert e7()["status"] == "blocked"
+    assert [o["type"] for o in e7()["obstacles"]] == ["high_curb"]  # confirmed again after the repair
+    assert e7()["status"] == "verified_accessible"  # never "blocked" for everyone (X2)
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="BUG (X2): an approved high_curb after a verified U1 repair records the obstacle but does not "
+           "restore has_step, so wheelchair routing goes through the step again",
+)
+def test_reapproved_step_after_repair_reopens_the_route(isolated_db):
+    e7 = lambda: next(e for e in load_graph().edges(keys=True, data=True) if e[2] == "E7")[3]
+    oid = store.add_work_order("U1")
+    store.verify_work_order(oid, "guard", "checked")
+    assert e7()["has_step"] is False
+
+    rid = store.add_report("E7", "resident", None, {"obstacle_type": "high_curb"})
+    store.set_report_status(rid, "approved")
+    assert e7()["has_step"] is True
+    assert _wheelchair_route().direct_reachable is False
 
 
 def test_verify_nonexistent_work_order_returns_none(isolated_db):

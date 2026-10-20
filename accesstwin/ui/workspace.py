@@ -349,3 +349,33 @@ def journey_changes(overlay_key: str, loc: Location, upgrade_ids: tuple) -> list
         out.append(JourneyChange(k, b.length_m if b.reachable else None, a.length_m if a.reachable else None,
                                  b.direct_reachable, a.direct_reachable))
     return out
+
+
+def evidence_thumbs(edge_id: str, max_bytes: int = 100_000) -> list[dict]:
+    """Report photos for the brief as small base64 JPEG thumbnails (X4), newest first."""
+    import base64
+    import io
+
+    from PIL import Image
+
+    from accesstwin.core import store
+    from accesstwin.ui import components as ui
+
+    out = []
+    for r in [x for x in store.list_reports() if x["edge_id"] == edge_id][::-1]:
+        path = config.resolve_path(r["photo_path"]) if r.get("photo_path") else None
+        if not path or not path.exists():
+            continue
+        with Image.open(path) as im:
+            im = im.convert("RGB")
+            im.thumbnail((360, 360))
+            q, buf = 80, io.BytesIO()
+            while True:
+                buf = io.BytesIO()
+                im.save(buf, format="JPEG", quality=q)
+                if buf.tell() <= max_bytes or q <= 40:
+                    break
+                q -= 10
+        out.append({"b64": base64.b64encode(buf.getvalue()).decode("ascii"),
+                    "caption": f"Report #{r['id']} · {r['status']} · {ui.photo_caption(path.name)}"})
+    return out

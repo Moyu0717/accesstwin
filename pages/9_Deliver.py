@@ -59,7 +59,7 @@ def main() -> None:
                 "not change the recorded network.</div>", unsafe_allow_html=True)
 
     scenario_section = {"location": f"{loc.label} ({loc.edge_id})", "upgrade": (loc.upgrade or {}).get("title"),
-                        "rows": rows, "steps": STEPS, "version": version}
+                        "rows": rows, "steps": STEPS, "version": version, "evidence": ws.evidence_thumbs(loc.edge_id)}
     html_doc = cached.brief_html(okey, ws.counts_key(), st.session_state.get("mode", "operate"),
                                  ws.reports_key(), ws.scenario_json(scenario_section))
     buf = io.StringIO()

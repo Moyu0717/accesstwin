@@ -15,7 +15,6 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
 import check_tracked  # noqa: E402
 
-SEEDED_OVERLAY = {"E20": {"status": "blocked"}, "E21": {"status": "blocked"}}
 
 
 def _map(**kw) -> str:
@@ -152,15 +151,19 @@ def test_run_page_shows_error_instead_of_raising():
     assert any("script completed" in m.value for m in at.markdown)
 
 
-# ---- F3.6: Reset demo data clears caches and restores the seed ----------
+# ---- F3.6: Reset demo data restores the seed (X1: reset is scoped to this session; no global caches) ----
 
-def test_reset_demo_data_clears_caches_and_restores_seeded_overlay():
+def test_reset_demo_data_restores_seeded_overlay():
     store.reset_demo()
-    pending = [r for r in store.list_reports("pending") if r["edge_id"] not in SEEDED_OVERLAY]
+    seeded = store.get_overlay()
+    # X2 seed: approved SR2 obstructs E20 for wheelchair/stroller; approved SR5 ("other") flags E21 for inspection.
+    assert [o["type"] for o in seeded["E20"]["obstacles"]] == ["blocked_ramp"]
+    assert seeded["E21"]["needs_inspection"] is True
+    pending = [r for r in store.list_reports("pending") if r["edge_id"] not in seeded]
     assert pending, "seed data should contain a pending report on a non-seeded edge"
     report = pending[0]
     store.set_report_status(report["id"], "approved")
-    assert store.get_overlay() != SEEDED_OVERLAY
+    assert store.get_overlay() != seeded
 
     at = AppTest.from_file(str(ROOT / "app.py"), default_timeout=60)
     at.run()
@@ -170,7 +173,7 @@ def test_reset_demo_data_clears_caches_and_restores_seeded_overlay():
     buttons[0].click().run()
 
     assert not at.exception
-    assert store.get_overlay() == SEEDED_OVERLAY
+    assert store.get_overlay() == seeded
 
 
 # ---- F3.8: .streamlit/config.toml ----------------------------------------

@@ -1,9 +1,13 @@
 """Persona routing: edge passability, edge cost, and route results (spec section 7, M2)."""
 from __future__ import annotations
 
+import copy
+
 import pytest
 
-from accesstwin.core.graph import build_graph, find_edge, load_township
+from accesstwin import config
+from accesstwin.core import store
+from accesstwin.core.graph import build_graph, find_edge, load_graph, load_township
 from accesstwin.core.personas import load_personas
 from accesstwin.core.routing import edge_cost, edge_passable, route
 
@@ -88,11 +92,43 @@ def test_include_unverified_toggle_changes_result(G):
 # ---------- edge_passable ----------
 
 
-def test_blocked_edge_e20_not_passable_for_any_persona(G):
-    edge = find_edge(G, "E20")
+def test_status_blocked_is_full_closure_for_every_persona(G):
+    """X2: status 'blocked' is reserved for an explicit full closure, so it still blocks everyone."""
+    closed = copy.deepcopy(find_edge(G, "E20"))
+    closed["status"] = "blocked"
     for persona in ALL:
-        assert edge_passable(edge, persona)[0] is False
+        for include in (False, True):
+            ok, reason = edge_passable(closed, persona, include_unverified=include)
+            assert ok is False
+            assert "E20" in reason and "closed" in reason
+
+
+def test_base_e20_kerb_ramp_passable_for_all_personas(G):
+    """The base township has no obstacle on E20; the seeded SR2 report adds one (next test)."""
+    edge = find_edge(G, "E20")
+    assert edge["status"] == "verified_accessible"
+    for persona in ALL:
+        assert edge_passable(edge, persona)[0] is True
+
+
+@pytest.fixture
+def seeded_graph(tmp_path, monkeypatch):
+    monkeypatch.setattr(config, "DB_PATH", tmp_path / "routing.db")
+    store.init_db(seed=True)
+    return load_graph()
+
+
+def test_seeded_e20_obstructed_only_for_wheelchair_and_stroller(seeded_graph):
+    """Approved SR2 (blocked_ramp, parked vehicles) obstructs E20 for wheelchair and stroller users only."""
+    edge = find_edge(seeded_graph, "E20")
+    assert edge["status"] == "verified_accessible"
+    for persona in (WHEEL, STROLLER):
+        ok, reason = edge_passable(edge, persona)
+        assert ok is False
+        assert "obstructed by parked vehicles (report #" in reason
         assert edge_passable(edge, persona, include_unverified=True)[0] is False
+    for persona in (ELDER, VI):
+        assert edge_passable(edge, persona)[0] is True
 
 
 def test_unverified_e9_passable_only_with_include_unverified(G):

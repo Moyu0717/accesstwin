@@ -99,12 +99,17 @@ def _scenario_html(sc: dict | None) -> str:
     rows = "".join(f"<tr><td>{_e(r['assessment'])}</td><td>{_e(r['baseline'])}</td><td>{_e(r['scenario'])}</td>"
                    f"<td>{_e(r['change'])}</td><td>{_e(r['source'])}</td></tr>" for r in sc.get("rows", []))
     steps = "".join(f"<li><b>{_e(h)}</b> — {_e(b)}</li>" for h, b in sc.get("steps", []))
+    ev = "".join(f"<figure style='display:inline-block;margin:0 12px 12px 0;max-width:240px'>"
+                 f"<img src='data:image/jpeg;base64,{x['b64']}' alt='{_e(x['caption'])}' style='max-width:240px'>"
+                 f"<figcaption style='font-size:12px'>{_e(x['caption'])}</figcaption></figure>"
+                 for x in sc.get("evidence", []))
+    ev_html = f"<h3>Evidence</h3>{ev}" if ev else "<h3>Evidence</h3><p>No photo evidence yet.</p>"
     table = (f"<table><tr><th>Assessment</th><th>Baseline</th><th>Scenario (simulated)</th><th>Change</th>"
              f"<th>Source</th></tr>{rows}</table>") if rows else "<p>Not assessed — confirm site conditions first.</p>"
     return (f"<h2>Study: {_e(sc.get('location', ''))}</h2>"
             f"<p>Proposed change: <b>{_e(sc.get('upgrade') or 'none yet')}</b> · data version {_e(sc.get('version', ''))} · "
             f"<b>Simulated</b> values on <b>synthetic</b> demo data — the recorded network is unchanged.</p>{table}"
-            f"<h3>Delivery steps</h3><ol>{steps}</ol>")
+            f"{ev_html}<h3>Delivery steps</h3><ol>{steps}</ol>")
 
 
 def _bundle_html(bundle) -> str:

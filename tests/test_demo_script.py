@@ -69,7 +69,9 @@ def test_full_demo_script_mock_mode():
     queue = _page(PAGES["3"])
     queue.button(key=f"vq_ok_{rid}").click().run()
     assert not queue.exception
-    assert store.get_overlay()["E7"]["status"] == "blocked"
+    # X2: approval confirms the 15 cm step as an obstacle; E7 is not closed for everyone.
+    assert [o["type"] for o in store.get_overlay()["E7"]["obstacles"]] == ["high_curb"]
+    assert "blocked" != store.get_overlay()["E7"].get("status")
     # ... and the Footfall page shows E7 far below expected: suppressed demand.
     ff = _page(PAGES["4"])
     ff.button(key="ff_run").click().run()
