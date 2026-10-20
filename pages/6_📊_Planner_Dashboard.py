@@ -76,6 +76,7 @@ def work_order_board() -> None:
         st.info("No work orders yet. Create one from the Upgrade Simulator (\"Create work order\").")
         return
     titles = {u["id"]: u["title"] for u in load_upgrades()}
+    repairable = {u["id"] for u in load_upgrades() if u.get("edge_id")}
     verified = {v["note"].split()[0] for v in store.list_verifications() if (v.get("note") or "").startswith(store.WO_NOTE_PREFIX)}
     cols = st.columns(3)
     for col, status, label in zip(cols, store.WORK_ORDER_STATUSES, ["📋 Open", "🚧 In progress", "✅ Done"]):
@@ -97,7 +98,10 @@ def work_order_board() -> None:
                             st.success("Verified on site — the segment is updated.")
                         else:
                             st.warning("Verify on site before the segment counts as accessible.")
-                            if st.button("Verify on site (passable)", key=f"wo_verify_{o['id']}", type="primary"):
+                            if o["upgrade_id"] not in repairable:
+                                st.caption("New link path (design option): it is added to the network once built and "
+                                           "surveyed — not modelled as an on-site repair here.")
+                            elif st.button("Verify on site (passable)", key=f"wo_verify_{o['id']}", type="primary"):
                                 store.verify_work_order(o["id"], "guard", "repair checked on site")
                                 st.cache_data.clear()
                                 st.rerun(scope="app")
@@ -169,9 +173,10 @@ def main() -> None:
                     f"Observed <b>{d.observed:.0f}</b> vs expected <b>{d.expected:.0f}</b> (ratio {d.ratio:.2f} &lt; 0.4).<br>"
                     f"Barriers on routes through it: {', '.join(d.barrier_edges)}.<br>"
                     "<span class='at-muted'>Low traffic ≠ unimportant — people may not walk here because they can't.</span>", "bad")
-        st.dataframe(demand_frame(demand), width="stretch", hide_index=True, column_config=ui.DEMAND_COLUMNS)
-        st.caption("Gravity model: expected ∝ population × importance ÷ distance^1.5, scaled to total observed. "
-                   "Segments without a camera show 'No CCTV coverage' and are never inferred.")
+
+    st.dataframe(demand_frame(demand), width="stretch", hide_index=True, column_config=ui.DEMAND_COLUMNS)
+    st.caption("Gravity model: expected ∝ population × importance ÷ distance^1.5, scaled to total observed. "
+               "Segments without a camera show 'No CCTV coverage' and are never inferred.")
 
     ui.bundle_card(cached.bundle(okey, mode), "dash_bundle")
 

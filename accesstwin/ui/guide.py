@@ -52,8 +52,21 @@ STOPS: list[Stop] = [
 ]
 
 
+def queue_presets(values: dict) -> None:
+    """Widget values can only be set before the widget is created, so presets wait for the next run."""
+    st.session_state["guide_pending"] = {**st.session_state.get("guide_pending", {}), **values}
+
+
+def apply_pending() -> None:
+    """Called at the very start of every page (setup_page), before any widget exists."""
+    pending = st.session_state.pop("guide_pending", None)
+    if pending:
+        st.session_state.update(pending)
+
+
 def start() -> None:
-    st.session_state.update({"guide_step": 0, "persona": "wheelchair", "persona_select": "wheelchair"})
+    st.session_state["guide_step"] = 0
+    queue_presets({"persona": "wheelchair", "persona_select": "wheelchair"})
 
 
 def active() -> bool:
@@ -94,7 +107,7 @@ def panel(page: str) -> None:
             if stop.reset_next:
                 store.reset_demo()
                 st.cache_data.clear()
-            st.session_state.update(stop.preset_next)
+            queue_presets(stop.preset_next)
             st.session_state["guide_step"] = i + 1
             _go(STOPS[i + 1].page)
         if c2.button("Exit guided demo", key="guide_exit"):

@@ -27,6 +27,9 @@ def setup_page(title: str, icon: str = "♿", page_config_done: bool = False) ->
     if not page_config_done:
         st.set_page_config(page_title=f"{title} · AccessTwin", page_icon=icon, layout="wide")
     store.init_db()
+    from accesstwin.ui import guide  # local import: guide imports this module's siblings only
+
+    guide.apply_pending()
     st.markdown(
         """
         <style>
@@ -189,8 +192,8 @@ def bundle_card(b, key_prefix: str = "bundle", allow_apply: bool = False) -> Non
         st.caption(f"Greedy by priority score within a budget of {b.budget:g} cost-weight units "
                    f"(low 1 · medium 2.5 · high 5); this package uses {b.cost_weight:g}. Relative tiers only — no RM costs.")
         m1, m2, m3, m4 = st.columns(4)
-        m1.metric("Township index", f"{d.index_after:.1f}", f"{d.index_delta:+.1f} (from {d.index_before:.1f})")
-        m2.metric("New trips", len(d.newly_reachable), help="Resident–persona–destination trips that become practical")
+        m1.metric("Package: township index", f"{d.index_after:.1f}", f"{d.index_delta:+.1f} (from {d.index_before:.1f})")
+        m2.metric("Package: new trips", len(d.newly_reachable), help="Resident–persona–destination trips that become practical")
         m3.metric("Est. beneficiaries", f"{d.beneficiaries:.0f}", help="population × vulnerable share (model estimate)")
         m4.metric("Wheelchair index", f"{d.persona_after.get('wheelchair', 0):.0f}",
                   f"{d.persona_delta().get('wheelchair', 0):+.1f}")
