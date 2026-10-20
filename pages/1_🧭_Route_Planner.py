@@ -8,7 +8,7 @@ from accesstwin.core.routing import route
 from accesstwin.ui import components as ui
 from accesstwin.ui import guide
 from accesstwin.ui.i18n import t
-from accesstwin.ui.map_view import LEGEND_MD, pending_key, show_map
+from accesstwin.ui.map_view import legend, pending_key, show_map
 
 
 @st.fragment
@@ -38,7 +38,7 @@ def planner(persona) -> None:
         show_map(height=520, overlay_key=ui.overlay_key(), persona_key=persona.key, include_unverified=include_unverified,
                  routes_key=json.dumps(routes), pending_key=pending_key(store.list_reports("pending")),
                  show_ids=st.session_state.get("show_ids", False))
-        st.caption(LEGEND_MD)
+        st.caption(legend())
         st.caption(t("unverified_notice"))
 
     with right:

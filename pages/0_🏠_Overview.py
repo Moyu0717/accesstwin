@@ -8,7 +8,7 @@ from accesstwin.ui import cached
 from accesstwin.ui import components as ui
 from accesstwin.ui import guide
 from accesstwin.ui.i18n import t
-from accesstwin.ui.map_view import LEGEND_MD, pending_key, show_map
+from accesstwin.ui.map_view import legend, pending_key, show_map
 
 
 def main() -> None:
@@ -24,7 +24,7 @@ def main() -> None:
     guide.panel("pages/0_🏠_Overview.py")
     if not guide.active():
         g1, g2 = st.columns([1, 3])
-        if g1.button("▶ Guided demo (3 min)", key="guide_start", type="primary",
+        if g1.button(t("guide_start"), key="guide_start", type="primary",
                      help="A 5-step tour of the whole demo. Exit any time."):
             guide.start()
             st.rerun()
@@ -49,7 +49,7 @@ def main() -> None:
     with left:
         show_map(height=480, overlay_key=okey, persona_key=persona.key,
                  pending_key=pending_key(store.list_reports("pending")), show_ids=st.session_state.get("show_ids", False))
-        st.caption(LEGEND_MD)
+        st.caption(legend())
         st.caption(t("unverified_notice"))
     with right:
         st.subheader("🚧 Top 3 critical gaps")

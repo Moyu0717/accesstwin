@@ -12,6 +12,7 @@ from accesstwin.core.simulation import load_upgrades
 from accesstwin.ui import cached
 from accesstwin.ui import components as ui
 from accesstwin.ui import guide
+from accesstwin.ui.i18n import t
 from accesstwin.ui.map_view import show_map
 
 
@@ -68,7 +69,7 @@ def main() -> None:
                 return json.load(f).get("camera_daily_counts", {}), "precomputed file"
 
 
-    st.title("📊 Planner Dashboard")
+    st.title(f"📊 {t('dash_title')}")
 
 
     guide.panel("pages/6_📊_Planner_Dashboard.py")

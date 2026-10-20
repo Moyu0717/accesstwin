@@ -10,7 +10,7 @@ from accesstwin.ui import cached
 from accesstwin.ui import components as ui
 from accesstwin.ui import guide
 from accesstwin.ui.i18n import t
-from accesstwin.ui.map_view import LEGEND_MD, show_map
+from accesstwin.ui.map_view import legend, show_map
 
 
 @st.fragment
@@ -57,7 +57,7 @@ def scenario_panel(persona, mode: str) -> None:
         else:
             show_map(height=400, overlay_key=okey, persona_key=persona.key,
                      show_ids=st.session_state.get("show_ids", False), zoom=15)
-        st.caption(LEGEND_MD)
+        st.caption(legend())
 
         if d.newly_reachable:
             with st.expander(f"Newly reachable trips ({len(d.newly_reachable)})", expanded=True):

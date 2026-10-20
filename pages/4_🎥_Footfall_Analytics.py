@@ -32,7 +32,7 @@ def main() -> None:
     persona = ui.sidebar()
     G = ui.graph()
 
-    st.title("🎥 Footfall Analytics")
+    st.title(f"🎥 {t('footfall_title')}")
 
     guide.panel("pages/4_🎥_Footfall_Analytics.py")
     st.info("Aggregate counts only: no frames or crops are stored, no face recognition is used, and any real "

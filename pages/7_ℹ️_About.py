@@ -26,7 +26,7 @@ digraph G {
 def main() -> None:
     ui.setup_page("About", "ℹ️")
     ui.sidebar()
-    st.title("ℹ️ About AccessTwin")
+    st.title(f"ℹ️ {t('about_title')}")
     guide.panel("pages/7_ℹ️_About.py")
 
     st.markdown("""

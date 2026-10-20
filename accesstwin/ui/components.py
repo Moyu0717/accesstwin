@@ -11,7 +11,7 @@ from accesstwin import config
 from accesstwin.core import store
 from accesstwin.core.graph import build_graph, load_township
 from accesstwin.core.personas import Persona, load_personas
-from accesstwin.ui.i18n import t
+from accesstwin.ui.i18n import LANGUAGES, current_lang, t
 
 PERSONA_ICONS = {"wheelchair": "♿", "elderly": "🧓", "stroller": "👶", "visually_impaired": "🦯"}
 # Wide status / barrier columns so labels like "No modelled demand (off-route)" never truncate.
@@ -83,10 +83,12 @@ def graph() -> nx.MultiGraph:
 
 
 def persona_label(key: str) -> str:
-    return f"{PERSONA_ICONS.get(key, '')} {personas()[key].label}"
+    return f"{PERSONA_ICONS.get(key, '')} {t('p_' + key) if t('p_' + key) != 'p_' + key else personas()[key].label}"
 
 
 def persona_short(key: str) -> str:
+    if current_lang() != "en":
+        return persona_label(key)
     return f"{PERSONA_ICONS.get(key, '')} {PERSONA_SHORT.get(key, personas()[key].label)}"
 
 
@@ -105,6 +107,8 @@ def sidebar() -> Persona:
                 f"<span class='at-badge' style='background:#DCFCE7;color:#166534'>{t('live_badge')}</span>",
                 unsafe_allow_html=True,
             )
+        st.selectbox(t("language"), list(LANGUAGES), format_func=LANGUAGES.get, key="lang",
+                     help="BM and 中文 are machine-drafted and pending human proofreading.")
         current = st.session_state.get("persona", "wheelchair")
         choice = st.selectbox(
             t("persona"), keys, index=keys.index(current) if current in keys else 0,
@@ -127,7 +131,7 @@ def sidebar() -> Persona:
                     "equity weight": p.equity_weight,
                 }
             )
-        st.toggle("Show segment IDs on maps", key="show_ids", value=st.session_state.get("show_ids", False))
+        st.toggle(t("show_ids"), key="show_ids", value=st.session_state.get("show_ids", False))
         st.caption(t("fictional"))
         st.divider()
         if st.button(t("reset"), help="Clears reports, verifications and work orders, then re-seeds sample reports."):

@@ -169,9 +169,10 @@ def show_map(height: int = 480, **keys) -> None:
     components.html(map_html(**keys), height=height)
 
 
-LEGEND_MD = (
-    "**Segments:** solid blue = verified accessible · solid orange-red with ✖ = blocked · grey dashed = unverified · "
-    "thin dotted orange-red = impassable for the selected persona · amber thick = upgraded (simulator). "
-    "**Points:** light-blue circles = homes · coloured circles = destinations (hover for the name) · "
-    "orange dot = pending report."
-)
+def legend() -> str:
+    from accesstwin.ui.i18n import t
+
+    return t("legend")
+
+
+LEGEND_MD = legend()  # English default for non-UI callers; pages call legend()
