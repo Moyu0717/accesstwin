@@ -86,7 +86,7 @@ a:focus-visible, button:focus-visible, [role="tab"]:focus-visible, input:focus-v
 .at-brand svg {{width:28px;height:28px;fill:none;stroke:#394338;stroke-width:1.3}}
 .at-project {{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text-primary)}}
 .at-tag {{font-size:12px;letter-spacing:.8px;color:var(--text-secondary);border:1px solid var(--border-default);padding:3px 6px;text-transform:uppercase}}
-.at-chip {{display:inline-block;font-size:12px;letter-spacing:.6px;text-transform:uppercase;padding:3px 8px;border:1px solid var(--border-default);
+.at-chip {{display:inline-block;white-space:nowrap;font-size:12px;letter-spacing:.6px;text-transform:uppercase;padding:3px 8px;border:1px solid var(--border-default);
   border-radius:2px;color:var(--text-secondary);background:var(--surface-panel)}}
 .at-chip.sim {{color:var(--accent-strong);border-color:#D6B8A4;background:#F6EEE6}}
 .at-chip.pending {{color:var(--state-pending);border-color:#D9CDAF;background:#FBF7EC}}
@@ -182,6 +182,7 @@ table.at-cmp td.sc {{color:var(--accent-strong);background:#F6F0E6}}
   .at-mobile-only, .st-key-ws_mobile_action {{display:block}}
   [data-testid="stElementContainer"]:has(.at-mobile-only) {{display:block !important}}
   .st-key-ws_mobile_action {{margin-top:6px}}
+  .at-hero {{aspect-ratio:16/10}}
   .st-key-ws_top_action {{display:none}}
   [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] .at-tabs) > [data-testid="stColumn"]:has(.at-brand)
     {{flex:0 0 30px !important;min-width:30px !important}}

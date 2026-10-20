@@ -348,16 +348,17 @@ def main() -> None:
             f"{'ramp scenario' if scenario else 'existing conditions'}</div>", unsafe_allow_html=True)
         if scenario:
             with st.container(border=True, key="ws_sim_banner"):
-                b0, b1, b2 = st.columns([2.2, 1.35, 0.9], vertical_alignment="center")
+                b0, b2 = st.columns([3, 1], vertical_alignment="center")
                 b0.markdown(f"<div class='at-status sim'><b>SIMULATED</b> · {ws.esc(loc.upgrade['title'])} · not built — "
                             f"existing conditions unchanged</div>", unsafe_allow_html=True)
-                b1.button(f"↩ {t('return_baseline')}", key="ws_return_banner", on_click=_set_scenario, args=((),),
-                          type="tertiary")
                 with b2:
                     ws._page_link("pages/8_Compare.py", "Compare →")
         st.markdown(f"<div class='at-mobile-only'><div class='at-status {'sim' if scenario else 'blocked'}'>"
                     f"{ws.esc('Proposed scenario' if scenario else loc.status_text)} · {ws.esc(loc.edge_id)} · "
-                    f"{ws.esc(loc.short)}</div></div>", unsafe_allow_html=True)
+                    f"{ws.esc(loc.short)}</div><div class='at-muted'>Access Score "
+                    + (f"{cached.scenario(okey, scenario)[0].index_after:.1f} simulated "
+                       f"({cached.scenario(okey, scenario)[0].index_delta:+.1f})" if scenario
+                       else f"{cached.scores(okey).index:.1f} · baseline") + "</div></div>", unsafe_allow_html=True)
         with st.container(key="ws_mobile_action"):
             action_box(loc, scenario, "mobile")
         with st.container(key="ws_hero_mob"):
@@ -375,8 +376,8 @@ def main() -> None:
                     routes.append([base_r.path, PREVIOUS_COLOUR, True, f"Previous detour {_fmt(base_r.length_m)}", True])
                     legend.append([f"3px dotted {PREVIOUS_COLOUR}", f"Previous detour {_fmt(base_r.length_m)}"])
                 if cur.reachable:
-                    routes.append([cur.path, REFERENCE_COLOUR, False, f"Simulated route {_fmt(cur.length_m)}"])
-                    legend.append([f"4px solid {REFERENCE_COLOUR}", f"Simulated route {_fmt(cur.length_m)}"])
+                    routes.append([cur.path, DETOUR_COLOUR, False, f"Simulated route {_fmt(cur.length_m)}"])
+                    legend.append([f"4px solid {DETOUR_COLOUR}", f"Simulated route {_fmt(cur.length_m)}"])
                 legend.append(["8px solid #EBB866", "Proposed ramp (amber halo, simulated)"])
             else:
                 ref_label = ("Shortest reference path — interrupted" if not base_r.direct_reachable

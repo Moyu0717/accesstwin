@@ -77,7 +77,15 @@ def base_map(
                    tiles="OpenStreetMap" if street else None, control_scale=street, scrollWheelZoom=False,
                    prefer_canvas=True)
     # Same bounds for every view of the scene: all nodes of the base network (Baseline and Scenario share them).
-    m.fit_bounds([[min(lats), min(lons)], [max(lats), max(lons)]], padding=(64, 40))
+    bounds = [[min(lats), min(lons)], [max(lats), max(lons)]]
+    m.fit_bounds(bounds, padding=(64, 40))
+    # Phones: wider side padding so node labels (up to ~150 px) are not clipped at the frame edge.
+    name = m.get_name()
+    m.get_root().script.add_child(folium.Element(
+        "(function () { function fit() { if (typeof " + name + " === 'undefined' || window.innerWidth >= 600) return; "
+        + name + ".invalidateSize(); " + name + ".options.zoomSnap = 0.1; " + name + ".fitBounds(" + json.dumps(bounds)
+        + ", {paddingTopLeft: [95, 20], paddingBottomRight: [95, 20]}); } "
+        "window.addEventListener('load', fit); window.addEventListener('resize', fit); setTimeout(fit, 400); })();"))
     if not street:
         m.get_root().header.add_child(folium.Element(
             "<style>.leaflet-container{background:" + MAP_BACKGROUND + " !important;font-family:'Segoe UI',Arial,sans-serif}</style>"))
