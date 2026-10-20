@@ -68,8 +68,23 @@ def _apply_in_place(H: nx.MultiGraph, upgrade: dict, assume_verified: bool) -> N
     changes = dict(upgrade.get("changes", {}))
     if assume_verified:
         changes["status"] = "verified_accessible"
-    if not set_edge_attrs(H, upgrade["edge_id"], changes):
+    edge = find_edge(H, upgrade["edge_id"])
+    if edge is None:
         raise KeyError(f"upgrade {upgrade.get('id')} references unknown edge {upgrade['edge_id']}")
+    # X2: an upgrade only removes the confirmed obstacles it resolves (a ramp doesn't remove parked cars).
+    resolves = set(upgrade.get("resolves", []))
+    if edge.get("obstacles"):
+        changes["obstacles"] = [o for o in edge["obstacles"] if o.get("type") not in resolves]
+    set_edge_attrs(H, upgrade["edge_id"], changes)
+
+
+def unresolved_obstacles(G: nx.MultiGraph, upgrade: dict) -> list[dict]:
+    """Confirmed obstacles on the upgraded segment that this upgrade does not resolve (shown in the preview)."""
+    if not upgrade.get("edge_id"):
+        return []
+    edge = find_edge(G, upgrade["edge_id"]) or {}
+    resolves = set(upgrade.get("resolves", []))
+    return [o for o in edge.get("obstacles", []) or [] if o.get("type") not in resolves and o.get("kind") == "obstruction"]
 
 
 @dataclass

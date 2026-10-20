@@ -3,5 +3,23 @@
   "segments": {
     "E7": "Clinic approach",
     "E22": "J1–J2 link"
+  },
+  "node_label_offsets": {
+    "D_CLINIC": [
+      10,
+      12
+    ],
+    "R3": [
+      -150,
+      -16
+    ],
+    "J3": [
+      0,
+      0
+    ],
+    "R1": [
+      -150,
+      4
+    ]
   }
 }

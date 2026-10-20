@@ -64,6 +64,13 @@ CREATE TABLE IF NOT EXISTS work_orders (
     status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','in_progress','done')),
     created_at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS inspection_requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    edge_id TEXT NOT NULL,
+    note TEXT,
+    status TEXT NOT NULL DEFAULT 'pending',
+    created_at TEXT NOT NULL
+);
 """
 
 REPORT_STATUSES = ("pending", "approved", "rejected")
@@ -173,7 +180,7 @@ def reset_demo() -> None:
     """Wipe all runtime data and re-seed the sample reports ("Reset demo data" button)."""
     with connect() as conn:
         conn.executescript(SCHEMA)
-        for table in ("reports", "verifications", "footfall_runs", "work_orders"):
+        for table in ("reports", "verifications", "footfall_runs", "work_orders", "inspection_requests"):
             conn.execute(f"DELETE FROM {table}")
         conn.execute("DELETE FROM sqlite_sequence")
     seed_sample_reports()
@@ -397,3 +404,20 @@ def verify_work_order(order_id: int, verifier_role: str, note: str = "") -> int 
     set_work_order_status(order_id, "done")
     return add_verification(edge[row["upgrade_id"]][0], verifier_role, "passable",
                             f"{WO_NOTE_PREFIX}{order_id} {note}".strip())
+
+
+# ---- site inspection requests (X4) --------------------------------------------
+
+def add_inspection_request(edge_id: str, note: str = "") -> int:
+    with connect() as conn:
+        conn.executescript(SCHEMA)
+        cur = conn.execute("INSERT INTO inspection_requests (edge_id, note, status, created_at) VALUES (?,?,?,?)",
+                           (edge_id, note, "pending", _now()))
+        return int(cur.lastrowid)
+
+
+def list_inspection_requests(edge_id: str | None = None) -> list[dict]:
+    with connect() as conn:
+        conn.executescript(SCHEMA)
+        q = "SELECT * FROM inspection_requests" + (" WHERE edge_id=?" if edge_id else "") + " ORDER BY id"
+        return [dict(r) for r in conn.execute(q, (edge_id,) if edge_id else ()).fetchall()]

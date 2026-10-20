@@ -85,24 +85,34 @@ class Location:
     condition_unit: str = ""
     condition_text: str = ""
     upgrade: dict | None = None
+    short: str = ""  # barrier in plain words for the priority list, e.g. "15 cm step"
 
 
-def _condition(e: dict) -> tuple[str, str, str, str]:
-    """(kind, value, unit, sentence) describing the recorded condition from the data."""
-    if e.get("status") == "blocked":
-        return "blocked", "Blocked", "", "This segment is recorded as blocked (approved obstacle report)."
+def _condition(e: dict) -> tuple[str, str, str, str, str]:
+    """(kind, value, unit, sentence, short) — the recorded *physical fact* first (X2: never "Blocked")."""
+    obstructions = [o for o in e.get("obstacles", []) or [] if o.get("kind") == "obstruction"]
     if e.get("has_step") or float(e.get("curb_height_cm") or 0) > 2:
-        return ("barrier", f"{float(e['curb_height_cm']):g}", "cm",
-                "raised step — a level change interrupts the direct connection.")
+        c = float(e["curb_height_cm"])
+        return ("barrier", f"{c:g}", "cm", "raised step — a level change interrupts the direct connection.",
+                f"{c:g} cm step")
+    if obstructions:
+        o = obstructions[0]
+        return ("obstruction", o.get("text", "obstruction").capitalize(), "",
+                f"confirmed by report #{o.get('report_id')} — affects {', '.join(o.get('personas', [])) or 'some profiles'}.",
+                o.get("text", "obstruction"))
     if e.get("status") == "unverified":
         return ("inspection", f"{float(e.get('width_cm', 0)) / 100:.2f}", "m",
                 "recorded width · On-site measurement pending — this synthetic record is not a site measurement. "
-                "Current access is not verified.")
+                "Current access is not verified.", "unverified record")
+    if e.get("status") == "blocked":
+        return "blocked", "Closed", "", "Explicit full closure recorded for this segment.", "closed"
     if e.get("surface") in ("broken", "gravel"):
-        return "barrier", e["surface"].capitalize(), "", "surface recorded as unsuitable for some profiles."
+        return ("barrier", e["surface"].capitalize(), "", "surface recorded as unsuitable for some profiles.",
+                f"{e['surface']} surface")
     if float(e.get("max_slope_pct") or 0) > 8:
-        return "barrier", f"{float(e['max_slope_pct']):g}", "%", "recorded slope — steep for some profiles."
-    return "barrier", "", "", "Recorded condition limits some profiles."
+        sl = float(e["max_slope_pct"])
+        return "barrier", f"{sl:g}", "%", "recorded slope — steep for some profiles.", f"{sl:g}% slope"
+    return "barrier", "", "", "Recorded condition limits some profiles.", "recorded barrier"
 
 
 def _journey_for(G, edge_id: str, gaps: list) -> tuple[str | None, str | None]:
@@ -132,12 +142,13 @@ def priority_locations(overlay_key: str, limit: int = 4) -> list[Location]:
             continue
         eid = m.group(1)
         e = find_edge(G, eid)
-        kind, value, unit, sentence = _condition(e)
+        kind, value, unit, sentence, short = _condition(e)
         affected = [k for k, p in P.items() if not edge_passable(e, p, include_unverified=False)[0]]
         origin, dest = _journey_for(G, eid, gaps)
-        status = {"barrier": "Barrier identified", "inspection": "Needs inspection", "blocked": "Blocked"}[kind]
+        status = {"barrier": "Barrier identified", "inspection": "Needs inspection", "blocked": "Closed",
+                  "obstruction": "Obstruction confirmed"}[kind]
         out.append(Location(eid, segment_label(G, eid), kind, status, origin, dest, affected, value, unit, sentence,
-                            ups.get(eid)))
+                            ups.get(eid), short))
         if len(out) >= limit:
             break
     return out
@@ -171,7 +182,7 @@ def project_bar(stage: str) -> None:
             else:
                 _page_link(page, label)
     with cols[4]:
-        with st.popover(t("more"), use_container_width=True):
+        with st.popover(t("more"), use_container_width=False):
             for page, key in MORE_PAGES:
                 _page_link(page, t(key))
     st.markdown("<div style='border-bottom:1px solid var(--border-default);margin:0 0 10px'></div>",
@@ -290,3 +301,51 @@ def reports_key() -> str:
 
 def scenario_json(section: dict) -> str:
     return json.dumps(section, ensure_ascii=False, sort_keys=True)
+
+
+
+# ---------------------------------------------------------------- review state, evidence, scenario change (X2–X4)
+
+def review_state(edge_id: str) -> tuple[str, str]:
+    """(css class, text) for the review chip — separate from the physical fact (X2)."""
+    from accesstwin.core import store
+
+    reps = [r for r in store.list_reports() if r["edge_id"] == edge_id]
+    if not reps:
+        return "unknown", "No report yet"
+    approved = [r for r in reps if r["status"] == "approved"]
+    if approved:
+        r = approved[-1]
+        return "verified", f"Obstacle confirmed by {r['reporter_role']} review, {(r.get('decided_at') or '')[:10]}"
+    if any(r["status"] == "pending" for r in reps):
+        return "pending", "Report pending review"
+    return "unknown", "Reports rejected"
+
+
+def list_label(loc: Location, review: str) -> str:
+    """Priority list row (X8): name · ID — barrier · profiles · review state."""
+    n = len(loc.affected)
+    prof = f"{n} profile{'s' if n != 1 else ''}" if loc.kind != "inspection" else "impact not assessed"
+    return f"{loc.label} · {loc.edge_id} — {loc.short} · {prof} · {review.lower()}"
+
+
+@dataclass
+class JourneyChange:
+    persona: str
+    before_m: float | None
+    after_m: float | None
+    before_ok: bool
+    after_ok: bool
+
+
+def journey_changes(overlay_key: str, loc: Location, upgrade_ids: tuple) -> list[JourneyChange]:
+    """Per-profile journey before → after for the location's demo trip (core routing on both graphs)."""
+    out = []
+    if not (loc.origin and loc.dest):
+        return out
+    for k in load_personas():
+        b = cached.journey(overlay_key, (), loc.origin, loc.dest, k)
+        a = cached.journey(overlay_key, upgrade_ids, loc.origin, loc.dest, k)
+        out.append(JourneyChange(k, b.length_m if b.reachable else None, a.length_m if a.reachable else None,
+                                 b.direct_reachable, a.direct_reachable))
+    return out

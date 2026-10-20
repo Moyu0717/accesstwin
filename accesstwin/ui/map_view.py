@@ -115,12 +115,12 @@ def base_map(
         if d.get("type") == "residential":
             folium.CircleMarker(loc, radius=7, color="#394338", weight=2, fill=True, fill_color="#FBFBF8", fill_opacity=1,
                                 tooltip=f"{d['name']} · pop {d.get('population')} · vulnerable {d.get('vulnerable_share', 0):.0%}").add_to(m)
-            _label(m, loc, d["name"])
+            _label(m, loc, d["name"], nid)
         elif d.get("type") == "destination":
             c = CATEGORY_COLOURS.get(d.get("category"), "#586151")
             folium.CircleMarker(loc, radius=6, color="#242824", weight=1.5, fill=True, fill_color=c, fill_opacity=0.95,
                                 tooltip=f"{d['name']} ({d.get('category', '').replace('_', ' ')})").add_to(m)
-            _label(m, loc, d["name"])
+            _label(m, loc, d["name"], nid)
         else:
             folium.CircleMarker(loc, radius=3, color="#586151", fill=True, tooltip=d.get("name", nid)).add_to(m)
 
@@ -133,8 +133,19 @@ def base_map(
     return m
 
 
-def _label(m: folium.Map, loc, text: str) -> None:
-    folium.map.Marker(loc, icon=folium.DivIcon(icon_size=(160, 16), icon_anchor=(-9, 7), html=(
+def _label_offsets() -> dict:
+    try:
+        from accesstwin import config
+
+        with open(config.DATA_DIR / "display_names.json", encoding="utf-8") as f:
+            return json.load(f).get("node_label_offsets", {})
+    except (OSError, ValueError):
+        return {}
+
+
+def _label(m: folium.Map, loc, text: str, node_id: str = "") -> None:
+    dx, dy = _label_offsets().get(node_id, [0, 0])
+    folium.map.Marker(loc, icon=folium.DivIcon(icon_size=(160, 16), icon_anchor=(-9 - dx, 7 - dy), html=(
         "<div style='font-size:12px;letter-spacing:.3px;color:#2F382A;white-space:nowrap;"
         "text-shadow:0 0 3px #E9ECE1,0 0 3px #E9ECE1,0 0 3px #E9ECE1'>" + html.escape(str(text)) + "</div>"))).add_to(m)
 

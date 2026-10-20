@@ -61,7 +61,7 @@ html, body, [data-testid="stAppViewContainer"], [data-testid="stApp"] {{backgrou
 header[data-testid="stHeader"] {{background:transparent;height:0;min-height:0}}
 [data-testid="stSidebarNav"], [data-testid="stSidebarNavSeparator"] {{display:none}}
 [data-testid="stToolbar"] {{right:8px}}
-.block-container, [data-testid="stMainBlockContainer"] {{padding-top:0.6rem;padding-bottom:1rem;max-width:100%}}
+.block-container, [data-testid="stMainBlockContainer"] {{padding-top:0.6rem;padding-bottom:72px;max-width:100%}}
 [data-testid="stSidebar"] {{background:var(--surface-panel);border-right:1px solid var(--border-default)}}
 h1,h2,h3 {{font-weight:500;letter-spacing:-.4px;color:var(--text-primary)}}
 h1 {{font-size:1.65rem}} h2 {{font-size:1.35rem}} h3 {{font-size:1.1rem}}
@@ -122,6 +122,9 @@ table.at-cmp td.sc {{color:var(--accent-strong);background:#F6F0E6}}
 [data-testid="stMain"] [data-testid="stPageLink"] a {{border:1px solid var(--border-default);background:var(--surface-panel);padding:0 12px}}
 [data-testid="stHorizontalBlock"]:has(.at-tabs) [data-testid="stPageLink"] a {{border:none;background:transparent}}
 [data-testid="stHorizontalBlock"]:has(.at-tabs) [data-testid="stColumn"] > div {{justify-content:center}}
+[data-testid="stHorizontalBlock"]:has(.at-tabs) [data-testid="stPageLink"] a {{min-height:44px;margin:0;justify-content:center;
+  border-bottom:2px solid transparent !important}}
+[data-testid="stHorizontalBlock"]:has(.at-tabs) [data-testid="stPopover"] {{display:flex;justify-content:flex-end}}
 /* Legacy cards keep working, restyled with hairlines */
 .at-card {{border:1px solid var(--border-default);border-radius:2px;padding:14px 16px;background:var(--surface-panel);margin-bottom:10px}}
 .at-bad {{border-left:3px solid var(--state-blocked)}} .at-good {{border-left:3px solid var(--state-verified)}}
