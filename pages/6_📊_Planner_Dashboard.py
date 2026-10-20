@@ -8,10 +8,47 @@ from accesstwin import config
 from accesstwin.core import report, store
 from accesstwin.core.demand import demand_frame
 from accesstwin.core.graph import find_edge, node_name
+from accesstwin.core.simulation import load_upgrades
 from accesstwin.ui import cached
 from accesstwin.ui import components as ui
 from accesstwin.ui import guide
 from accesstwin.ui.map_view import show_map
+
+
+@st.fragment
+def work_order_board() -> None:
+    """Operate-mode loop (P1-3): open → in progress → done → verify on site → segment verified with the repair."""
+    st.subheader("🛠️ Work orders")
+    orders = store.list_work_orders()
+    if not orders:
+        st.info("No work orders yet. Create one from the Upgrade Simulator (\"Create work order\").")
+        return
+    titles = {u["id"]: u["title"] for u in load_upgrades()}
+    verified = {v["note"].split()[0] for v in store.list_verifications() if (v.get("note") or "").startswith(store.WO_NOTE_PREFIX)}
+    cols = st.columns(3)
+    for col, status, label in zip(cols, store.WORK_ORDER_STATUSES, ["📋 Open", "🚧 In progress", "✅ Done"]):
+        with col:
+            group = [o for o in orders if o["status"] == status]
+            st.markdown(f"**{label}** ({len(group)})")
+            for o in group:
+                with st.container(border=True):
+                    st.markdown(f"**#{o['id']} · {o['upgrade_id']}** — {titles.get(o['upgrade_id'], '')}")
+                    st.caption(f"Created {o['created_at'][:16].replace('T', ' ')} · time to fix: — (tracked in pilot)")
+                    if status == "open" and st.button("Start work", key=f"wo_start_{o['id']}"):
+                        store.set_work_order_status(o["id"], "in_progress")
+                        st.rerun()
+                    if status == "in_progress" and st.button("Mark done", key=f"wo_done_{o['id']}"):
+                        store.set_work_order_status(o["id"], "done")
+                        st.rerun()
+                    if status == "done":
+                        if f"{store.WO_NOTE_PREFIX}{o['id']}" in verified:
+                            st.success("Verified on site — the segment is updated.")
+                        else:
+                            st.warning("Verify on site before the segment counts as accessible.")
+                            if st.button("Verify on site (passable)", key=f"wo_verify_{o['id']}", type="primary"):
+                                store.verify_work_order(o["id"], "guard", "repair checked on site")
+                                st.cache_data.clear()
+                                st.rerun(scope="app")
 
 
 def main() -> None:
@@ -115,6 +152,8 @@ def main() -> None:
             st.info("No candidate upgrades for this mode.")
         else:
             st.dataframe(ranking.head(5)[["rank", "id", "title", "cost_tier", "delta_index", "roi"]], hide_index=True, width="stretch")
+
+    work_order_board()
 
     st.subheader("📄 Export Planning Brief")
     html_doc = cached.brief_html(okey, counts_key, mode, json.dumps([[r['id'], r['status']] for r in reports]))

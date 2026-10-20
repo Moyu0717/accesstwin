@@ -182,19 +182,49 @@ def list_verifications() -> list[dict]:
 
 # ---- overlay ---------------------------------------------------------------
 
+WO_NOTE_PREFIX = "WO#"  # verification note prefix linking an on-site check to a completed work order
+
+
+def _upgrade_changes() -> dict[str, tuple[str, dict]]:
+    """upgrade_id -> (edge_id, physical attribute changes) for upgrades that modify an existing segment."""
+    try:
+        with open(config.UPGRADES_PATH, encoding="utf-8") as f:
+            ups = json.load(f)
+    except (OSError, ValueError):
+        return {}
+    return {u["id"]: (u["edge_id"], {k: v for k, v in u.get("changes", {}).items() if k != "status"})
+            for u in ups if u.get("edge_id")}
+
+
 def get_overlay() -> dict[str, dict]:
-    """edge_id -> {"status": ...} from approved reports and verifications (latest event wins)."""
-    events: list[tuple[str, str, str]] = []
+    """edge_id -> attribute overlay from approved reports, verifications and verified repairs (latest event wins).
+
+    A passable verification whose note starts with "WO#<id>" also applies that work order's physical changes
+    (e.g. the step removed by a kerb ramp), so a completed and verified repair really changes routing.
+    """
+    events: list[tuple[str, str, dict]] = []
+    repairs = _upgrade_changes()
     with connect() as conn:
         conn.executescript(SCHEMA)
+        orders = {r["id"]: r["upgrade_id"] for r in conn.execute("SELECT id, upgrade_id FROM work_orders WHERE status='done'")}
         for r in conn.execute("SELECT edge_id, decided_at FROM reports WHERE status='approved'"):
-            events.append((r["decided_at"] or "", r["edge_id"], "blocked"))
-        for r in conn.execute("SELECT edge_id, result, created_at FROM verifications"):
+            events.append((r["decided_at"] or "", r["edge_id"], {"status": "blocked"}))
+        for r in conn.execute("SELECT edge_id, result, note, created_at FROM verifications"):
             status = "verified_accessible" if r["result"] == "passable" else "blocked"
-            events.append((r["created_at"], r["edge_id"], status))
+            attrs = {"status": status}
+            note = r["note"] or ""
+            if status == "verified_accessible" and note.startswith(WO_NOTE_PREFIX):
+                try:
+                    oid = int(note[len(WO_NOTE_PREFIX):].split()[0])
+                except (ValueError, IndexError):
+                    oid = None
+                edge_changes = repairs.get(orders.get(oid, ""))
+                if edge_changes and edge_changes[0] == r["edge_id"]:
+                    attrs = {**edge_changes[1], "status": status}
+            events.append((r["created_at"], r["edge_id"], attrs))
     overlay: dict[str, dict] = {}
-    for _ts, edge_id, status in sorted(events):
-        overlay[edge_id] = {"status": status}
+    for _ts, edge_id, attrs in sorted(events, key=lambda e: e[0]):
+        overlay[edge_id] = {**overlay.get(edge_id, {}), **attrs}  # repairs persist; status follows the latest event
     return overlay
 
 
@@ -242,3 +272,16 @@ def list_footfall_runs() -> list[dict]:
     with connect() as conn:
         conn.executescript(SCHEMA)
         return [dict(r) for r in conn.execute("SELECT * FROM footfall_runs ORDER BY id").fetchall()]
+
+
+def verify_work_order(order_id: int, verifier_role: str, note: str = "") -> int | None:
+    """Mark a work order done and record the on-site verification that applies its physical change."""
+    edge = _upgrade_changes()
+    with connect() as conn:
+        conn.executescript(SCHEMA)
+        row = conn.execute("SELECT upgrade_id FROM work_orders WHERE id=?", (order_id,)).fetchone()
+    if row is None or row["upgrade_id"] not in edge:
+        return None
+    set_work_order_status(order_id, "done")
+    return add_verification(edge[row["upgrade_id"]][0], verifier_role, "passable",
+                            f"{WO_NOTE_PREFIX}{order_id} {note}".strip())
