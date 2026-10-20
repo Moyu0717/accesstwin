@@ -123,6 +123,11 @@ def main() -> None:
     ui.page_head(t('route_title'), eyebrow="Resident · Plan a trip")
     guide.panel("pages/1_🧭_Route_Planner.py")
     st.caption("Same origin and destination, different reachability per profile.")
+    r1, r2, _ = st.columns([1, 1, 3])
+    with r1:
+        ui.page_link("pages/2_📸_Report_Obstacle.py", label=f"{t('res_report')} →")
+    with r2:
+        ui.page_link("pages/10_Track_Report.py", label=f"{t('res_track')} →")
     planner(persona)
     ui.disclaimer()
 

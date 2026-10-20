@@ -18,6 +18,7 @@ from __future__ import annotations
 import contextvars
 import json
 import re
+import secrets
 import sqlite3
 import time
 from contextlib import contextmanager
@@ -36,7 +37,14 @@ CREATE TABLE IF NOT EXISTS reports (
     ai_json TEXT,
     status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected')),
     created_at TEXT NOT NULL,
-    decided_at TEXT
+    decided_at TEXT,
+    token TEXT,
+    description TEXT,
+    ai_original_json TEXT,
+    triage TEXT,
+    duplicate_of INTEGER,
+    reason TEXT,
+    idem_key TEXT
 );
 CREATE TABLE IF NOT EXISTS verifications (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -71,6 +79,8 @@ CREATE TABLE IF NOT EXISTS inspection_requests (
     status TEXT NOT NULL DEFAULT 'pending',
     created_at TEXT NOT NULL
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_reports_token ON reports(token);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_reports_idem ON reports(idem_key);
 """
 
 REPORT_STATUSES = ("pending", "approved", "rejected")
@@ -132,6 +142,26 @@ def session_uploads_dir() -> Path:
     return Path(config.UPLOADS_DIR) / (cur.stem if cur else "shared")
 
 
+# Stage B report columns (resident flow). Older session/demo DBs get them added in place; the formal
+# schema version + migration arrives in Round 2C.
+REPORT_COLUMNS = {"token": "TEXT", "description": "TEXT", "ai_original_json": "TEXT", "triage": "TEXT",
+                  "duplicate_of": "INTEGER", "reason": "TEXT", "idem_key": "TEXT"}
+_columns_ok: set[str] = set()
+
+
+def _ensure_report_columns(conn: sqlite3.Connection, key: str) -> None:
+    if key in _columns_ok:
+        return
+    have = {r[1] for r in conn.execute("PRAGMA table_info(reports)")}
+    if have:
+        for col, typ in REPORT_COLUMNS.items():
+            if col not in have:
+                conn.execute(f"ALTER TABLE reports ADD COLUMN {col} {typ}")
+        conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS ux_reports_token ON reports(token)")
+        conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS ux_reports_idem ON reports(idem_key)")
+        _columns_ok.add(key)
+
+
 @contextmanager
 def connect(path: Path | str | None = None) -> Iterator[sqlite3.Connection]:
     p = Path(path) if path else db_path()
@@ -139,6 +169,7 @@ def connect(path: Path | str | None = None) -> Iterator[sqlite3.Connection]:
     conn = sqlite3.connect(p)
     conn.row_factory = sqlite3.Row
     try:
+        _ensure_report_columns(conn, str(p))
         yield conn
         conn.commit()
     finally:
@@ -146,8 +177,10 @@ def connect(path: Path | str | None = None) -> Iterator[sqlite3.Connection]:
 
 
 def init_db(seed: bool = True) -> None:
+    _columns_ok.discard(str(db_path()))
     with connect() as conn:
         conn.executescript(SCHEMA)
+        _ensure_report_columns(conn, str(db_path()))
         empty = conn.execute("SELECT COUNT(*) FROM reports").fetchone()[0] == 0
     if seed and empty:
         seed_sample_reports()
@@ -170,7 +203,7 @@ def seed_sample_reports(path: Path | str | None = None) -> int:
             "source": "seed",
         }
         photo = f"data/photos/{s['photo']}" if s.get("photo") else None
-        rid = add_report(s["edge_id"], s["reporter_role"], photo, ai)
+        rid = add_report(s["edge_id"], s["reporter_role"], photo, ai, description=s.get("note", ""))
         if s.get("status") in ("approved", "rejected"):
             set_report_status(rid, s["status"])
     return len(seeds)
@@ -188,25 +221,147 @@ def reset_demo() -> None:
 
 # ---- reports ---------------------------------------------------------------
 
+def new_token() -> str:
+    """Unguessable receipt code (not the sequential id), e.g. AT-7KQ2-M9XD."""
+    alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    raw = "".join(secrets.choice(alphabet) for _ in range(8))
+    return f"AT-{raw[:4]}-{raw[4:]}"
+
+
 def add_report(edge_id: str, reporter_role: str, photo_path: str | None, ai: dict | None,
-               status: str = "pending") -> int:
+               status: str = "pending", description: str = "", ai_original: dict | None = None,
+               idem_key: str | None = None) -> int:
     if status not in REPORT_STATUSES:
         raise ValueError(f"bad status {status}")
     with connect() as conn:
         conn.executescript(SCHEMA)
         cur = conn.execute(
-            "INSERT INTO reports (edge_id, reporter_role, photo_path, ai_json, status, created_at) "
-            "VALUES (?,?,?,?,?,?)",
-            (edge_id, reporter_role, photo_path, json.dumps(ai or {}), status, _now()),
+            "INSERT INTO reports (edge_id, reporter_role, photo_path, ai_json, status, created_at, token, description, "
+            "ai_original_json, idem_key) VALUES (?,?,?,?,?,?,?,?,?,?)",
+            (edge_id, reporter_role, photo_path, json.dumps(ai or {}), status, _now(), new_token(), description or "",
+             json.dumps(ai_original) if ai_original else None, idem_key),
         )
         return int(cur.lastrowid)
+
+
+def submit_report(edge_id: str, reporter_role: str, description: str, photo_path: str | None, ai: dict,
+                  ai_original: dict | None, idem_key: str) -> dict:
+    """Resident submission (stage B): idempotent per `idem_key` — a double click or retry returns the same report."""
+    if not idem_key:
+        raise ValueError("idem_key required")
+    if not (description or "").strip() and not photo_path:
+        raise ValueError("Add a short description or a photo.")
+    existing = get_report_by_idem(idem_key)
+    if existing:
+        return {**existing, "created": False}
+    try:
+        rid = add_report(edge_id, reporter_role, photo_path, ai, description=description.strip()[:1000],
+                         ai_original=ai_original, idem_key=idem_key)
+    except sqlite3.IntegrityError:  # a concurrent retry with the same key won the race
+        return {**get_report_by_idem(idem_key), "created": False}
+    return {**get_report(rid), "created": True}
+
+
+def _row(d: sqlite3.Row | None) -> dict | None:
+    if d is None:
+        return None
+    out = dict(d)
+    out["ai"] = json.loads(out.get("ai_json") or "{}")
+    out["ai_original"] = json.loads(out["ai_original_json"]) if out.get("ai_original_json") else None
+    return out
+
+
+def get_report(report_id: int) -> dict | None:
+    with connect() as conn:
+        conn.executescript(SCHEMA)
+        return _row(conn.execute("SELECT * FROM reports WHERE id=?", (report_id,)).fetchone())
+
+
+def get_report_by_idem(idem_key: str) -> dict | None:
+    with connect() as conn:
+        conn.executescript(SCHEMA)
+        return _row(conn.execute("SELECT * FROM reports WHERE idem_key=?", (idem_key,)).fetchone())
+
+
+def get_report_by_token(token: str) -> dict | None:
+    code = (token or "").strip().upper()
+    if not re.fullmatch(r"AT-[A-Z0-9]{4}-[A-Z0-9]{4}", code):
+        return None
+    with connect() as conn:
+        conn.executescript(SCHEMA)
+        return _row(conn.execute("SELECT * FROM reports WHERE token=?", (code,)).fetchone())
+
+
+TRIAGE_ACTIONS = ("accept", "request_info", "duplicate", "reject")
+
+
+def triage_report(report_id: int, action: str, reason: str = "", duplicate_of: int | None = None) -> dict:
+    """Review decision (stage B §5.3 Triage). Accept confirms the obstacle (X2 semantics) — never a closure.
+
+    request_info keeps the report open (needs_information); duplicate links it to a main report; reject needs a reason.
+    """
+    if action not in TRIAGE_ACTIONS:
+        raise ValueError(f"bad action {action}")
+    r = get_report(report_id)
+    if r is None:
+        raise ValueError(f"no report {report_id}")
+    reason = (reason or "").strip()[:500]
+    if action == "reject" and not reason:
+        raise ValueError("A reason is required to reject a report.")
+    if action == "request_info" and not reason:
+        raise ValueError("Say what information is needed.")
+    if action == "duplicate":
+        main = get_report(int(duplicate_of)) if duplicate_of is not None else None
+        if main is None or main["id"] == report_id:
+            raise ValueError("Choose a different main report.")
+        if main.get("triage") == "duplicate" and main.get("duplicate_of"):
+            duplicate_of = int(main["duplicate_of"])  # always link to the root report
+    status, triage = {"accept": ("approved", "accepted"), "request_info": ("pending", "needs_information"),
+                      "duplicate": ("rejected", "duplicate"), "reject": ("rejected", "rejected")}[action]
+    with connect() as conn:
+        conn.execute("UPDATE reports SET status=?, triage=?, reason=?, duplicate_of=?, decided_at=? WHERE id=?",
+                     (status, triage, reason or None, duplicate_of if action == "duplicate" else None,
+                      _now() if status != "pending" else None, report_id))
+    return get_report(report_id)
+
+
+def add_report_info(token: str, text: str) -> dict | None:
+    """Resident answers a "request information": the note is appended and the report returns to review."""
+    r = get_report_by_token(token)
+    text = (text or "").strip()[:1000]
+    if r is None or r.get("triage") != "needs_information" or not text:
+        return r
+    desc = (r.get("description") or "") + f"\n\n[Added {_now()[:10]}] {text}"
+    with connect() as conn:
+        conn.execute("UPDATE reports SET description=?, triage=NULL WHERE id=?", (desc.strip(), r["id"]))
+    return get_report(r["id"])
+
+
+def report_state(r: dict) -> tuple[str, str]:
+    """(state shown to the resident, next step). No service times are promised (none exist in the demo)."""
+    triage = r.get("triage")
+    if triage == "needs_information":
+        return ("More information requested", f"Reviewer asks: {r.get('reason') or 'more detail'}. Add it below.")
+    if triage == "duplicate":
+        return (f"Linked to report #{r.get('duplicate_of')}",
+                "The same obstacle was already reported; follow that report for progress.")
+    if r["status"] == "approved":
+        return ("Accepted for investigation",
+                "The obstacle is recorded for the profiles it affects. A site check or repair may follow; "
+                "the map changes again only after a verified repair.")
+    if r["status"] == "rejected":
+        return ("Not accepted", f"Reason: {r.get('reason') or 'not given'}.")
+    return ("Submitted — waiting for review", "A reviewer checks the description and photo. Nothing changes on the "
+            "map until the report is accepted.")
 
 
 def set_report_status(report_id: int, status: str) -> None:
     if status not in REPORT_STATUSES:
         raise ValueError(f"bad status {status}")
+    triage = {"approved": "accepted", "rejected": "rejected"}.get(status)
     with connect() as conn:
-        conn.execute("UPDATE reports SET status=?, decided_at=? WHERE id=?", (status, _now(), report_id))
+        conn.execute("UPDATE reports SET status=?, decided_at=?, triage=COALESCE(?, triage) WHERE id=?",
+                     (status, _now(), triage, report_id))
 
 
 def list_reports(status: str | None = None) -> list[dict]:
@@ -216,12 +371,7 @@ def list_reports(status: str | None = None) -> list[dict]:
             rows = conn.execute("SELECT * FROM reports WHERE status=? ORDER BY id", (status,)).fetchall()
         else:
             rows = conn.execute("SELECT * FROM reports ORDER BY id").fetchall()
-    out = []
-    for r in rows:
-        d = dict(r)
-        d["ai"] = json.loads(d.get("ai_json") or "{}")
-        out.append(d)
-    return out
+    return [_row(r) for r in rows]
 
 
 # ---- verifications ---------------------------------------------------------

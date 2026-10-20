@@ -35,11 +35,13 @@ STOPS: list[Stop] = [
          {"persona": "wheelchair", "persona_select": "wheelchair", "ro_src": "Use a sample photo",
           "ro_sample": "kerb_high_granite_step.jpg", "ro_edge": "E7"}),
     Stop("pages/2_📸_Report_Obstacle.py", 3, "Evidence: a resident reports it",
-         "The sample kerb photo is classified as a high curb that needs on-site measurement.",
-         "Press **Submit report**, then Next."),
+         "The location (E7) and the sample kerb photo are pre-filled. The photo is analysed only when you ask.",
+         "Press **Analyse photo**, check the suggested category, press **Submit report** and note the receipt "
+         "code, then Next."),
     Stop("pages/3_✅_Verification_Queue.py", 3, "Evidence: a guard approves",
-         "AI only suggests — a person decides. Approval marks the segment blocked for routing.",
-         "Press **✅ Approve** on the E7 report, then Next."),
+         "AI only suggests — a person decides. Accepting confirms the step for the profiles it affects; it does "
+         "not close the path for everyone.",
+         "Open the E7 report and press **Accept for investigation**, then Next."),
     Stop("pages/4_🎥_Footfall_Analytics.py", 3, "Evidence: suppressed demand",
          "Anonymous CCTV counts on E7 are far below what the model expects.",
          "Press **Run count**, scroll to 'Camera counts vs expected demand', then Next (this resets the demo data).",

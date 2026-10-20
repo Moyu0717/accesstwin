@@ -123,17 +123,17 @@ a:focus-visible, button:focus-visible, [role="tab"]:focus-visible, input:focus-v
 .at-mono {{font-family:ui-monospace,Consolas,monospace;font-size:12.5px;color:var(--text-secondary)}}
 .at-hero-empty {{margin:10px 0 8px;aspect-ratio:4/3;border:1px dashed #C9CCBF;border-radius:4px;display:grid;
   place-items:center;color:var(--text-secondary);font-size:14px;background:#F3F4EE}}
-.st-key-ws_rows button {{justify-content:flex-start;text-align:left;border-radius:0;border:0;border-left:3px solid transparent;
+.st-key-ws_rows button, .st-key-vq_rows button {{justify-content:flex-start;text-align:left;border-radius:0;border:0;border-left:3px solid transparent;
   border-bottom:1px solid #E4E5DC;background:transparent;padding:8px 10px;min-height:44px}}
-.st-key-ws_rows button p {{text-align:left;margin:0;font-size:13px;color:var(--text-secondary);line-height:1.35}}
-.st-key-ws_rows button p strong {{color:var(--text-primary);font-size:14px;font-weight:600}}
-.st-key-ws_rows button[kind="primary"], .st-key-ws_rows button[data-testid="stBaseButton-primary"] {{
+.st-key-ws_rows button p, .st-key-vq_rows button p {{text-align:left;margin:0;font-size:13px;color:var(--text-secondary);line-height:1.35}}
+.st-key-ws_rows button p strong, .st-key-vq_rows button p strong {{color:var(--text-primary);font-size:14px;font-weight:600}}
+.st-key-ws_rows button[data-testid="stBaseButton-primary"], .st-key-vq_rows button[data-testid="stBaseButton-primary"] {{
   background:#F0EEE6 !important;border-left:3px solid #B75D37 !important;color:var(--text-primary) !important}}
-.st-key-ws_rows button[data-testid="stBaseButton-primary"] p {{color:var(--text-secondary) !important}}
-.st-key-ws_rows button[data-testid="stBaseButton-primary"] p strong {{color:var(--text-primary) !important}}
+.st-key-ws_rows button[data-testid="stBaseButton-primary"] p, .st-key-vq_rows button[data-testid="stBaseButton-primary"] p {{color:var(--text-secondary) !important}}
+.st-key-ws_rows button[data-testid="stBaseButton-primary"] p strong, .st-key-vq_rows button[data-testid="stBaseButton-primary"] p strong {{color:var(--text-primary) !important}}
 .stButton button, [data-testid="stPageLink"] a {{white-space:nowrap}}
-.st-key-ws_rows .stButton button {{white-space:normal}}
-.st-key-ws_rows button > div, .st-key-ws_rows button [data-testid="stMarkdownContainer"] {{justify-content:flex-start;width:100%;text-align:left}}
+.st-key-ws_rows .stButton button, .st-key-vq_rows .stButton button {{white-space:normal}}
+.st-key-ws_rows button > div, .st-key-ws_rows button [data-testid="stMarkdownContainer"], .st-key-vq_rows button > div, .st-key-vq_rows button [data-testid="stMarkdownContainer"] {{justify-content:flex-start;width:100%;text-align:left}}
 .at-big {{font-size:24px;font-weight:400;letter-spacing:-.5px;font-variant-numeric:tabular-nums}}
 .at-big small {{font-size:13px;color:var(--text-secondary);letter-spacing:0}}
 .at-grid2 {{display:grid;grid-template-columns:1fr 1fr;gap:14px}} .at-grid2>div+div {{border-left:1px solid #E2E5D9;padding-left:14px}}

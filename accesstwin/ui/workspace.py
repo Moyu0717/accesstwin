@@ -25,12 +25,12 @@ DISPLAY_NAMES_PATH = config.DATA_DIR / "display_names.json"
 _EDGE_IN_REASON = re.compile(r"^(E\w+):")
 
 STAGES = [("network", "pages/0_🏠_Overview.py"), ("compare", "pages/8_Compare.py"), ("deliver", "pages/9_Deliver.py")]
-MORE_PAGES = [
-    ("pages/1_🧭_Route_Planner.py", "nav_route"), ("pages/2_📸_Report_Obstacle.py", "nav_report"),
-    ("pages/3_✅_Verification_Queue.py", "nav_queue"), ("pages/4_🎥_Footfall_Analytics.py", "nav_footfall"),
-    ("pages/5_🏗️_Upgrade_Simulator.py", "nav_sim"), ("pages/6_📊_Planner_Dashboard.py", "nav_dash"),
-    ("pages/7_ℹ️_About.py", "nav_about"),
-]
+RESIDENT_PAGES = [("pages/1_🧭_Route_Planner.py", "res_plan"), ("pages/2_📸_Report_Obstacle.py", "res_report"),
+                  ("pages/10_Track_Report.py", "res_track")]
+STAFF_PAGES = [("pages/3_✅_Verification_Queue.py", "nav_queue"), ("pages/4_🎥_Footfall_Analytics.py", "nav_footfall"),
+               ("pages/5_🏗️_Upgrade_Simulator.py", "nav_sim"), ("pages/6_📊_Planner_Dashboard.py", "nav_dash"),
+               ("pages/7_ℹ️_About.py", "nav_about")]
+MORE_PAGES = RESIDENT_PAGES + STAFF_PAGES
 LOGO = ('<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M4 27 L16 5 L28 27"/><path d="M10 27 L16 16 L22 27"/>'
         '<path d="M3 27 H29"/></svg>')
 
@@ -183,8 +183,11 @@ def project_bar(stage: str) -> None:
                 _page_link(page, label)
     with cols[4]:
         with st.popover(t("more"), use_container_width=False):
-            for page, key in MORE_PAGES:
-                _page_link(page, t(key))
+            for group, pages in (("res_group", RESIDENT_PAGES), ("staff_group", STAFF_PAGES)):
+                st.markdown(f"<div class='at-eyebrow' style='margin:4px 0 0'>{esc(t(group))}</div>",
+                            unsafe_allow_html=True)
+                for page, key in pages:
+                    _page_link(page, t(key))
     st.markdown("<div style='border-bottom:1px solid var(--border-default);margin:0 0 10px'></div>",
                 unsafe_allow_html=True)
 

@@ -20,6 +20,7 @@ NAV = [
     ("pages/5_🏗️_Upgrade_Simulator.py", "nav_sim"),
     ("pages/6_📊_Planner_Dashboard.py", "nav_dash"),
     ("pages/7_ℹ️_About.py", "nav_about"),
+    ("pages/10_Track_Report.py", "nav_track"),
 ]
 _page = st.navigation([st.Page(path, title=t(key), default=(i == 0)) for i, (path, key) in enumerate(NAV)],
                       position="hidden")
