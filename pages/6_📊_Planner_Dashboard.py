@@ -5,15 +5,66 @@ import plotly.express as px
 import streamlit as st
 
 from accesstwin import config
-from accesstwin.core import report, store, validation
+from accesstwin.core import network_import, report, store, validation
 from accesstwin.core.demand import demand_frame
-from accesstwin.core.graph import find_edge, node_name
+from accesstwin.core.graph import build_graph, find_edge, node_name
+from accesstwin.core.scoring import compute_scores, critical_gaps
 from accesstwin.core.simulation import load_upgrades
 from accesstwin.ui import cached
 from accesstwin.ui import components as ui
 from accesstwin.ui import guide
 from accesstwin.ui.i18n import t
 from accesstwin.ui.map_view import show_map
+
+
+@st.fragment
+def draft_network_review() -> None:
+    """Design mode (P1-4): upload a draft walkway network, validate it, and review its gaps before building."""
+    st.subheader("📥 Pre-construction review: import a draft walkway network")
+    st.caption("Upload a draft masterplan's walkway network as two CSV files. It is analysed in this session only "
+               "(nothing is stored). Draft segments are not built yet, so they are all counted as planned (unverified).")
+    tn, ts = network_import.template_csvs()
+    sn, ss = network_import.sample_csvs()
+    c1, c2, c3, c4 = st.columns(4)
+    c1.download_button("Template nodes.csv", tn, "nodes.csv", "text/csv", key="dn_tpl_nodes")
+    c2.download_button("Template segments.csv", ts, "segments.csv", "text/csv", key="dn_tpl_segs")
+    c3.download_button("Sample nodes.csv", sn, "sample_nodes.csv", "text/csv", key="dn_smp_nodes")
+    c4.download_button("Sample segments.csv", ss, "sample_segments.csv", "text/csv", key="dn_smp_segs")
+    use_sample = st.toggle("Use the sample draft network", value=True, key="dn_use_sample")
+    if use_sample:
+        nodes_txt, segs_txt, name = sn, ss, "Sample draft network (fictional)"
+    else:
+        u1, u2 = st.columns(2)
+        fn = u1.file_uploader("nodes.csv", type=["csv"], key="dn_nodes")
+        fs = u2.file_uploader("segments.csv", type=["csv"], key="dn_segs")
+        if fn is None or fs is None:
+            st.info("Upload both files (or switch on the sample) to run the review.")
+            return
+        nodes_txt, segs_txt, name = fn.getvalue().decode("utf-8-sig"), fs.getvalue().decode("utf-8-sig"), "Uploaded draft network"
+    data, errors = network_import.parse_network(nodes_txt, segs_txt, name)
+    if errors:
+        st.error(f"{len(errors)} problem(s) found — fix the CSV files and upload again:")
+        st.dataframe([{"problem": e} for e in errors[:50]], hide_index=True, width="stretch")
+        return
+    G = build_graph(data)
+    P = ui.personas()
+    s = compute_scores(G, P, include_unverified=True)
+    st.success(f"{name}: {len(data['nodes'])} nodes, {len(data['edges'])} segments — valid.")
+    cols = st.columns(len(P) + 1)
+    cols[0].metric("Draft Gap Index", f"{s.index:.0f} / 100")
+    for col, (k, v) in zip(cols[1:], s.persona_index.items()):
+        col.metric(ui.persona_short(k), f"{v:.0f}")
+    st.markdown("**Critical gaps to fix on the drawing:**")
+    rows = []
+    for g in critical_gaps(s, G, P, top=5):
+        pr = g["pair"]
+        rows.append({"from": node_name(G, pr.residential), "persona": ui.persona_label(pr.persona),
+                     "destination type": pr.category.replace("_", " "),
+                     "result": "unreachable" if pr.reach == 0 else ("over comfortable distance" if pr.reach < 1
+                                                                     else f"{pr.detour_ratio:.1f}× detour"),
+                     "why": pr.reason or "—"})
+    st.dataframe(rows, hide_index=True, width="stretch",
+                 column_config={"why": st.column_config.TextColumn("why", width="large")})
 
 
 @st.fragment
@@ -154,6 +205,8 @@ def main() -> None:
         else:
             st.dataframe(ranking.head(5)[["rank", "id", "title", "cost_tier", "delta_index", "roi"]], hide_index=True, width="stretch")
 
+    if mode == "design":
+        draft_network_review()
     work_order_board()
 
     with st.expander("🔬 Evidence & validation (what is measured, synthetic or planned)"):

@@ -1,0 +1,11 @@
+id,name,type,lat,lon,population,vulnerable_share,category,importance
+H1,Draft Phase 2 Apartments,residential,3.1900,101.5100,500,0.20,,
+H2,Draft Senior Living,residential,3.1912,101.5122,180,0.60,,
+K1,Junction North,junction,3.1908,101.5110,,,,
+K2,Junction South,junction,3.1895,101.5115,,,,
+K3,Junction East,junction,3.1902,101.5132,,,,
+P_CLINIC,Draft Health Hub,destination,3.1915,101.5135,,,clinic,1.0
+P_BUS,Draft Bus Stop,destination,3.1890,101.5128,,,bus_stop,0.9
+P_SCHOOL,Draft School,destination,3.1918,101.5105,,,school,0.8
+P_SHOP,Draft Neighbourhood Shops,destination,3.1893,101.5102,,,grocery,0.7
+P_PARK,Draft Pocket Park,destination,3.1905,101.5140,,,park,0.5

@@ -1,0 +1,12 @@
+id,from,to,length_m,surface,has_step,curb_height_cm,max_slope_pct,width_cm,tactile_paving,covered,lit_at_night,status,cctv_id
+S1,H1,K1,120,good,false,2,3,180,true,true,true,unverified,
+S2,H1,K2,110,good,false,2,3,150,false,false,true,unverified,
+S3,H2,K1,90,good,true,14,3,150,false,true,true,unverified,
+S4,H2,K3,160,good,false,2,9,150,false,false,true,unverified,
+S5,K1,P_SCHOOL,100,good,false,2,3,150,false,false,true,unverified,
+S6,K1,K3,150,good,false,2,3,150,true,false,true,unverified,
+S7,K3,P_CLINIC,90,good,false,2,3,150,true,true,true,unverified,
+S8,K3,P_PARK,80,gravel,false,2,3,150,false,false,false,unverified,
+S9,K2,P_BUS,170,good,false,2,3,150,false,false,true,unverified,
+S10,K2,P_SHOP,90,cracked,false,2,4,120,false,false,true,unverified,
+S11,K2,K3,200,good,false,2,3,150,false,false,true,unverified,
