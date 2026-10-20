@@ -87,7 +87,12 @@ def persona_short(key: str) -> str:
     return PERSONA_SHORT.get(key, personas()[key].label)
 
 
-def sidebar() -> Persona:
+def sidebar(bar: bool = True) -> Persona:
+    """Sidebar (language, profile, Reset). `bar` also renders the V2 project bar for pages that don't draw their own."""
+    if bar:
+        from accesstwin.ui import workspace  # local import: workspace depends on this module's siblings
+
+        workspace.project_bar("")
     ps = personas()
     keys = list(ps)
     with st.sidebar:

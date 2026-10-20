@@ -122,7 +122,7 @@ def action_box(loc, scenario: tuple, where: str) -> None:
 
 def main() -> None:
     ui.setup_page(t("home_title"), "♿")
-    persona = ui.sidebar()
+    persona = ui.sidebar(bar=False)
     ws.project_bar("network")
     guide.panel(PAGE)
     G = ui.graph()

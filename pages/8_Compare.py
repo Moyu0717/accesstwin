@@ -15,7 +15,7 @@ PAGE = "pages/8_Compare.py"
 
 def main() -> None:
     ui.setup_page(t("stage_compare"), "♿")
-    persona = ui.sidebar()
+    persona = ui.sidebar(bar=False)
     ws.project_bar("compare")
     guide.panel(PAGE)
     okey = ui.overlay_key()

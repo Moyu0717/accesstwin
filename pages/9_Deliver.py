@@ -21,7 +21,7 @@ STEPS = [
 
 def main() -> None:
     ui.setup_page(t("stage_deliver"), "♿")
-    persona = ui.sidebar()
+    persona = ui.sidebar(bar=False)
     ws.project_bar("deliver")
     guide.panel(PAGE)
     okey = ui.overlay_key()
