@@ -15,7 +15,7 @@ def review_detail(r: dict, G, impact_text) -> None:
     edge = find_edge(G, r["edge_id"]) or {}
     chip = ("<span class='at-chip pending'>Waiting for information</span>" if r.get("triage") == "needs_information"
             else "<span class='at-chip pending'>Pending review</span>")
-    syn = " <span class='at-chip syn'>Synthetic</span>" if ai.get("source") == "seed" else ""
+    syn = f" <span class='at-chip syn'>{ui.esc(t('example_report'))}</span>" if ai.get("source") == "seed" else ""
     st.markdown(f"<div>{chip}{syn}</div><div class='at-title' style='font-size:22px'>Report #{r['id']} · "
                 f"{ui.esc(r['edge_id'])}</div><div class='at-sub'>{ui.esc(node_name(G, edge.get('from', '')))} → "
                 f"{ui.esc(node_name(G, edge.get('to', '')))} · {ui.esc(r['reporter_role'])} · "
@@ -24,6 +24,8 @@ def review_detail(r: dict, G, impact_text) -> None:
     c1, c2 = st.columns([1, 1.4])
     if photo and photo.exists():
         c1.image(str(photo), width="stretch")
+        if ui.is_example_photo(photo.name):
+            c1.markdown(f"<div class='at-example'>{ui.esc(ui.example_label())}</div>", unsafe_allow_html=True)
         c1.caption(ui.photo_credit_line(photo.name))
     else:
         c1.markdown("<div class='at-hero-empty'>No photo</div>", unsafe_allow_html=True)
@@ -184,8 +186,12 @@ def main() -> None:
                      hide_index=True, width="stretch")
         st.markdown("**Verifications**")
         st.dataframe(store.list_verifications(), hide_index=True, width="stretch")
-        st.markdown("**Current overlay** (segment → status)")
-        st.json(store.get_overlay())
+        st.markdown("**Current overlay** (segment → recorded status, confirmed obstacles and facts)")
+        st.dataframe([{"segment": k, "status": v.get("status", "—"),
+                       "obstacles": ", ".join(f"{o['type'].replace('_', ' ')} (#{o.get('report_id')})"
+                                              for o in v.get("obstacles", [])) or "—",
+                       "facts": ", ".join(f"{a}={b}" for a, b in v.items() if a not in ("status", "obstacles")) or "—"}
+                      for k, v in sorted(store.get_overlay().items())], hide_index=True, width="stretch")
 
     ui.disclaimer()
 

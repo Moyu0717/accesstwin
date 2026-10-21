@@ -18,7 +18,7 @@ def _set_persona() -> None:
 
 
 def _report_on(edge_id: str) -> None:
-    guide.queue_presets({"ro_edge": edge_id, "ro_src": "Use a sample photo"})
+    guide.queue_presets({"ro_edge": edge_id})
 
 
 def _blocking_edge(r) -> str | None:
@@ -30,7 +30,7 @@ def _blocking_edge(r) -> str | None:
     return None
 
 
-@st.fragment
+@ui.fragment
 def planner(persona) -> None:
     """Profile + trip pickers inline, conclusion first, then map, then the report action (2A-3)."""
     G = ui.graph()
@@ -93,7 +93,8 @@ def planner(persona) -> None:
     routes = [[r.baseline_path, REFERENCE_COLOUR, False, f"Shortest reference path: {ui.fmt_m(r.baseline_length_m)}"]]
     if r.reachable and r.path != r.baseline_path:
         routes.append([r.path, DETOUR_COLOUR, True, f"{who} route: {ui.fmt_m(r.length_m)}"])
-    show_map(height=520, overlay_key=ui.overlay_key(), persona_key=persona.key, include_unverified=include_unverified,
+    show_map(height=520, key_nodes_key=json.dumps([origin, dest]), overlay_key=ui.overlay_key(), persona_key=persona.key,
+             include_unverified=include_unverified,
              routes_key=json.dumps(routes), pending_key=pending_key(store.list_reports("pending")),
              show_ids=st.session_state.get("show_ids", False))
     st.caption(legend())

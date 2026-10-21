@@ -17,7 +17,7 @@ from accesstwin.ui.i18n import t
 from accesstwin.ui.map_view import show_map
 
 
-@st.fragment
+@ui.fragment
 def draft_network_review() -> None:
     """Design mode (P1-4): upload a draft walkway network, validate it, and review its gaps before building."""
     st.subheader("Pre-construction review: import a draft walkway network")
@@ -67,7 +67,7 @@ def draft_network_review() -> None:
                  column_config={"why": st.column_config.TextColumn("why", width="large")})
 
 
-@st.fragment
+@ui.fragment
 def work_order_board() -> None:
     """Operate-mode loop (P1-3): open → in progress → done → verify on site → segment verified with the repair."""
     st.subheader("Work orders")

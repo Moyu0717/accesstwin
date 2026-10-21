@@ -43,7 +43,7 @@ LABELS: dict[str, dict[str, str]] = {
         # navigation + page titles
         "nav_overview": "Overview", "nav_route": "Route Planner", "nav_report": "Report Obstacle",
         "nav_queue": "Verification Queue", "nav_footfall": "Footfall Analytics", "nav_sim": "Upgrade Simulator",
-        "nav_dash": "Planner Dashboard", "nav_about": "About", "nav_track": "Track my report",
+        "nav_dash": "Planner Dashboard", "nav_about": "About", "nav_track": "Track my report", "example_photo": "Example photo · not taken at this location", "example_report": "Example report",
         "res_group": "Resident", "res_plan": "Plan a trip", "res_report": "Report an obstacle",
         "res_track": "Track my report", "staff_group": "Review & planning",
         "home_title": "Township Overview",
@@ -133,7 +133,7 @@ LABELS: dict[str, dict[str, str]] = {
         ),
         "nav_overview": "Gambaran Keseluruhan", "nav_route": "Perancang Laluan", "nav_report": "Lapor Halangan",
         "nav_queue": "Barisan Pengesahan", "nav_footfall": "Analitik Pejalan Kaki", "nav_sim": "Simulator Naik Taraf",
-        "nav_dash": "Papan Pemuka Perancang", "nav_about": "Perihal", "nav_track": "Jejak laporan saya",
+        "nav_dash": "Papan Pemuka Perancang", "nav_about": "Perihal", "nav_track": "Jejak laporan saya", "example_photo": "Foto contoh · bukan diambil di lokasi ini", "example_report": "Laporan contoh",
         "res_group": "Penduduk", "res_plan": "Rancang perjalanan", "res_report": "Laporkan halangan",
         "res_track": "Jejak laporan saya", "staff_group": "Semakan & perancangan",
         "home_title": "Gambaran Keseluruhan Perbandaran",
@@ -204,7 +204,7 @@ LABELS: dict[str, dict[str, str]] = {
             "**点：**浅蓝圆点 = 住宅 · 彩色圆点 = 目的地（悬停查看名称）· 橙色圆点 = 待审核报告。"
         ),
         "nav_overview": "总览", "nav_route": "路线规划", "nav_report": "报告障碍", "nav_queue": "审核队列",
-        "nav_footfall": "人流分析", "nav_sim": "改造模拟", "nav_dash": "规划仪表盘", "nav_about": "关于", "nav_track": "追踪我的报告",
+        "nav_footfall": "人流分析", "nav_sim": "改造模拟", "nav_dash": "规划仪表盘", "nav_about": "关于", "nav_track": "追踪我的报告", "example_photo": "示例图片 · 非该地点现场照片", "example_report": "示例报告",
         "res_group": "居民", "res_plan": "规划出行", "res_report": "报告障碍", "res_track": "追踪我的报告",
         "staff_group": "审核与规划",
         "home_title": "城镇总览",

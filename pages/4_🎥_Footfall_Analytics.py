@@ -14,7 +14,7 @@ from accesstwin.ui import guide
 from accesstwin.ui.i18n import t
 
 
-@st.fragment
+@ui.fragment
 def accuracy_panel(auto_total: int, default_manual: int) -> None:
     """Typing a manual count only reruns this panel."""
     st.subheader("Accuracy panel")

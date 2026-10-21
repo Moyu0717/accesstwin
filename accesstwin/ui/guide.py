@@ -32,7 +32,7 @@ STOPS: list[Stop] = [
     Stop("pages/1_🧭_Route_Planner.py", 2, "Same trip, different people",
          "Block A → Clinic: the direct route is blocked for a wheelchair at E7; the detour is about 2.4× longer.",
          "Optional: switch the sidebar profile to Older adult to see the direct route work. Then press Next.",
-         {"persona": "wheelchair", "persona_select": "wheelchair", "ro_src": "Use a sample photo",
+         {"persona": "wheelchair", "persona_select": "wheelchair", "ro_src": "Use an example photo",
           "ro_sample": "kerb_high_granite_step.jpg", "ro_edge": "E7"}),
     Stop("pages/2_📸_Report_Obstacle.py", 3, "Evidence: a resident reports it",
          "The location (E7) and the sample kerb photo are pre-filled. The photo is analysed only when you ask.",

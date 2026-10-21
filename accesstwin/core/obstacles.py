@@ -29,9 +29,7 @@ PROMPT = (
 )
 
 # filename keyword -> preset Mock result (checked in order)
-# Generated stand-in images shipped with the demo; shown as "Illustration (placeholder)" until real photos land.
-PLACEHOLDER_PHOTOS = {"curb_high_step.png", "dark_path_night.png", "gravel_path_school.png",
-                      "path_crack_broken.png", "ramp_blocked_car.png"}
+PLACEHOLDER_PHOTOS: set[str] = set()  # UI-03: the old generated stand-ins were removed (Round 2 review)
 
 _MOCK_PRESETS: list[tuple[tuple[str, ...], dict]] = [
     # Negative example first: "ok_ramp_*" must not match the "ramp" rule below.

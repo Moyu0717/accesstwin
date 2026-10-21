@@ -415,5 +415,8 @@ def evidence_thumbs(edge_id: str, max_bytes: int = 100_000) -> list[dict]:
                     break
                 q -= 10
         out.append({"b64": base64.b64encode(buf.getvalue()).decode("ascii"),
-                    "caption": f"Report #{r['id']} · {r['status']} · {ui.photo_caption(path.name)}"})
+                    "caption": (f"{'Example report' if (r.get('ai') or {}).get('source') == 'seed' else 'Report'} "
+                                f"#{r['id']} · {r['status']} · "
+                                + (f"{ui.example_label()} · " if ui.is_example_photo(path.name) else "")
+                                + ui.photo_credit_line(path.name))})
     return out

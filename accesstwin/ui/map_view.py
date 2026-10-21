@@ -69,23 +69,33 @@ def base_map(
     zoom: int = 16,
     selected: str = "",
     street: bool = False,
+    key_nodes: Iterable[str] = (),
+    fit_nodes: Iterable[str] = (),
 ) -> folium.Map:
-    """Plan view: no tiles by default, the walkway graph drawn like a drawing on paper (plan §4.3)."""
-    lats = [float(d["lat"]) for _, d in G.nodes(data=True)]
-    lons = [float(d["lon"]) for _, d in G.nodes(data=True)]
+    """Plan view: no tiles by default, the walkway graph drawn like a drawing on paper (plan §4.3).
+
+    `key_nodes` keep their labels on phones (UI-02); `fit_nodes` limit the extent (Current route view)."""
+    key_nodes = set(key_nodes)
+    fit = [n for n in fit_nodes if n in G.nodes]
+    pts = [G.nodes[n] for n in fit] if len(fit) >= 2 else [d for _, d in G.nodes(data=True)]
+    lats = [float(d["lat"]) for d in pts]
+    lons = [float(d["lon"]) for d in pts]
     m = folium.Map(location=[sum(lats) / len(lats), sum(lons) / len(lons)], zoom_start=zoom,
                    tiles="OpenStreetMap" if street else None, control_scale=street, scrollWheelZoom=False,
                    prefer_canvas=True)
     # Same bounds for every view of the scene: all nodes of the base network (Baseline and Scenario share them).
     bounds = [[min(lats), min(lons)], [max(lats), max(lons)]]
     m.fit_bounds(bounds, padding=(64, 40))
-    # Phones: wider side padding so node labels (up to ~150 px) are not clipped at the frame edge.
+    # Phones: only key labels stay (drawn to the right of their node), so reserve room for them on the right.
     name = m.get_name()
     m.get_root().script.add_child(folium.Element(
         "(function () { function fit() { if (typeof " + name + " === 'undefined' || window.innerWidth >= 600) return; "
         + name + ".invalidateSize(); " + name + ".options.zoomSnap = 0.1; " + name + ".fitBounds(" + json.dumps(bounds)
-        + ", {paddingTopLeft: [95, 20], paddingBottomRight: [95, 20]}); } "
+        + ", {paddingTopLeft: [24, 28], paddingBottomRight: [150, 28]}); } "
         "window.addEventListener('load', fit); window.addEventListener('resize', fit); setTimeout(fit, 400); })();"))
+    m.get_root().header.add_child(folium.Element(
+        "<style>@media (max-width: 600px) { .at-lbl:not(.key) { display: none !important; } "
+        ".at-lbl.key { margin-left: 9px !important; margin-top: -8px !important; } }</style>"))
     if not street:
         m.get_root().header.add_child(folium.Element(
             "<style>.leaflet-container{background:" + MAP_BACKGROUND + " !important;font-family:'Segoe UI',Arial,sans-serif}</style>"))
@@ -123,12 +133,12 @@ def base_map(
         if d.get("type") == "residential":
             folium.CircleMarker(loc, radius=7, color="#394338", weight=2, fill=True, fill_color="#FBFBF8", fill_opacity=1,
                                 tooltip=f"{d['name']} · pop {d.get('population')} · vulnerable {d.get('vulnerable_share', 0):.0%}").add_to(m)
-            _label(m, loc, d["name"], nid)
+            _label(m, loc, d["name"], nid, nid in key_nodes)
         elif d.get("type") == "destination":
             c = CATEGORY_COLOURS.get(d.get("category"), "#586151")
             folium.CircleMarker(loc, radius=6, color="#242824", weight=1.5, fill=True, fill_color=c, fill_opacity=0.95,
                                 tooltip=f"{d['name']} ({d.get('category', '').replace('_', ' ')})").add_to(m)
-            _label(m, loc, d["name"], nid)
+            _label(m, loc, d["name"], nid, nid in key_nodes)
         else:
             folium.CircleMarker(loc, radius=3, color="#586151", fill=True, tooltip=d.get("name", nid)).add_to(m)
 
@@ -151,9 +161,10 @@ def _label_offsets() -> dict:
         return {}
 
 
-def _label(m: folium.Map, loc, text: str, node_id: str = "") -> None:
+def _label(m: folium.Map, loc, text: str, node_id: str = "", key: bool = False) -> None:
     dx, dy = _label_offsets().get(node_id, [0, 0])
-    folium.map.Marker(loc, icon=folium.DivIcon(icon_size=(160, 16), icon_anchor=(-9 - dx, 7 - dy), html=(
+    folium.map.Marker(loc, icon=folium.DivIcon(icon_size=(160, 16), icon_anchor=(-9 - dx, 7 - dy),
+                                               class_name="at-lbl key" if key else "at-lbl", html=(
         "<div style='font-size:12px;letter-spacing:.3px;color:#2F382A;white-space:nowrap;"
         "text-shadow:0 0 3px #E9ECE1,0 0 3px #E9ECE1,0 0 3px #E9ECE1'>" + html.escape(str(text)) + "</div>"))).add_to(m)
 
@@ -171,6 +182,13 @@ def add_barrier_marker(m: folium.Map, G: nx.MultiGraph, edge_id: str, label: str
               "white-space:nowrap'>" + html.escape(label) + "</span></div>"))).add_to(m)
 
 
+def legend_html(items: list, caption: str = "Fictional layout · not to scale") -> str:
+    """UI-02: the same legend rendered *outside* the map so it never covers nodes (phones and desktop)."""
+    rows = "".join("<span class='at-leg'><i style='border-top:" + html.escape(style) + "'></i>" + html.escape(lb) + "</span>"
+                   for style, lb in items)
+    return f"<div class='at-legend'>{rows}<div class='at-muted'>{html.escape(caption)}</div></div>"
+
+
 def add_legend(m: folium.Map, items: list, caption: str = "Fictional layout · not to scale") -> None:
     """Legend inside the map frame. items = [(css border-top style, label)]."""
     rows = "".join("<span style='display:inline-flex;align-items:center;gap:6px;margin-right:12px'>"
@@ -182,8 +200,9 @@ def add_legend(m: folium.Map, items: list, caption: str = "Fictional layout · n
         + rows + "<div style='margin-top:4px;color:#586151'>" + html.escape(caption) + "</div></div>"))
 
 
-def _tag(m: folium.Map, loc, text: str, border: str, colour: str = "#242824") -> None:
-    folium.map.Marker(loc, icon=folium.DivIcon(icon_size=(240, 24), icon_anchor=(-8, 30), html=(
+def _tag(m: folium.Map, loc, text: str, border: str, colour: str = "#242824", key: bool = False) -> None:
+    folium.map.Marker(loc, icon=folium.DivIcon(icon_size=(240, 24), icon_anchor=(-8, 30),
+                                               class_name="at-lbl key" if key else "at-lbl", html=(
         "<span style='background:#FAF9F4;border:1px solid " + border + ";padding:2px 6px;font:12.5px Segoe UI,Arial,"
         "sans-serif;color:" + colour + ";white-space:nowrap'>" + html.escape(text) + "</span>"))).add_to(m)
 
@@ -208,7 +227,7 @@ def add_proposed(m: folium.Map, G: nx.MultiGraph, edge_id: str, label: str) -> N
         return
     folium.PolyLine([_coords(G, e["from"]), _coords(G, e["to"])], color="#E8A33D", weight=20, opacity=0.55,
                     tooltip=label).add_to(m)
-    _tag(m, edge_midpoint(G, e), label, "#E8A33D", "#7A3E1F")
+    _tag(m, edge_midpoint(G, e), label, "#E8A33D", "#7A3E1F", key=True)
 
 
 @st.cache_data(max_entries=64, show_spinner=False)
@@ -228,6 +247,8 @@ def map_html(
     street: bool = False,
     legend_key: str = "",
     proposed_label: str = "",
+    key_nodes_key: str = "[]",
+    fit_key: str = "[]",
 ) -> str:
     """Render a map to a standalone HTML string. All arguments are hashable keys (JSON strings), never objects.
 
@@ -245,7 +266,7 @@ def map_html(
         G = apply_upgrades(G, [by_id[i] for i in upgrade_ids if i in by_id])
     persona = load_personas()[persona_key] if persona_key else None
     m = base_map(G, persona, include_unverified, json.loads(highlight_key), json.loads(pending_key), show_ids, zoom,
-                 selected=selected, street=street)
+                 selected=selected, street=street, key_nodes=json.loads(key_nodes_key), fit_nodes=json.loads(fit_key))
     highlights = json.loads(highlight_key)
     if proposed_label and highlights:
         add_proposed(m, G, highlights[0], proposed_label)

@@ -18,7 +18,7 @@ from accesstwin.ui import components as ui
 from accesstwin.ui import guide
 from accesstwin.ui import workspace as ws
 from accesstwin.ui.i18n import t
-from accesstwin.ui.map_view import DETOUR_COLOUR, REFERENCE_COLOUR, show_map
+from accesstwin.ui.map_view import DETOUR_COLOUR, REFERENCE_COLOUR, legend_html, show_map
 
 PAGE = "pages/0_🏠_Overview.py"
 PREVIOUS_COLOUR = "#A8A396"
@@ -37,7 +37,7 @@ def _fmt(m: float | None) -> str:
 
 
 def _report_here(edge_id: str) -> None:
-    guide.queue_presets({"ro_edge": edge_id, "ro_src": "Use a sample photo"})
+    guide.queue_presets({"ro_edge": edge_id})
 
 
 # ---------------------------------------------------------------- Inspector sections
@@ -79,16 +79,20 @@ def evidence_hero(loc, where: str = "") -> None:
     ai = r.get("ai") or {}
     note = (ai.get("visible_evidence") or "").strip()
     quote = f" · “{note[:70]}{'…' if len(note) > 70 else ''}”" if note else ""
-    caption = f"{r['reporter_role'].capitalize()} · {r['created_at'][:10]}{quote}"
+    seed = ai.get("source") == "seed"
+    caption = (f"{t('example_report') + ' · ' if seed else ''}{r['reporter_role'].capitalize()} · "
+               f"{r['created_at'][:10]}{quote}")
     credit = ui.photo_credit_line(p.name)
+    example = (f"<div class='at-example'>{ws.esc(ui.example_label())}</div>" if ui.is_example_photo(p.name) else "")
     st.markdown(
         f"<figure class='at-hero'><img alt='{ws.esc(ui.photo_caption(p.name))}' "
         f"src='data:image/jpeg;base64,{ws.photo_b64(str(p), p.stat().st_mtime)}'/>"
-        f"<span class='at-hero-chip {r['status']}'>Report #{r['id']} · {ws.esc(STATUS_LABEL[r['status']])}</span></figure>"
+        f"<span class='at-hero-chip {r['status']}'>{'Example report' if seed else 'Report'} #{r['id']} · "
+        f"{ws.esc(STATUS_LABEL[r['status']])}</span></figure>{example}"
         f"<div class='at-hero-cap'>{ws.esc(caption)}</div><div class='at-hero-credit'>{ws.esc(credit)}</div>",
         unsafe_allow_html=True)
     if st.button("Enlarge photo", key=f"ws_enlarge_{loc.edge_id}{where}", type="tertiary"):
-        _enlarge(str(p), caption, credit)
+        _enlarge(str(p), caption, (ui.example_label() + " · " if ui.is_example_photo(p.name) else "") + credit)
     if len(photos) > 1:
         cols = st.columns(min(len(photos), 4))
         for i, x in enumerate(photos[:4]):
@@ -363,14 +367,19 @@ def main() -> None:
             action_box(loc, scenario, "mobile")
         with st.container(key="ws_hero_mob"):
             evidence_hero(loc, "_m")
-        # Street map is back as an opt-in toggle (user request, 2026-10-21); default stays the plan view (X6) and the
-        # street view says plainly that the walkway network on top is a fictional diagram.
-        street = st.toggle(t("street_map"), key="ws_street", value=False,
-                           help="Shows OpenStreetMap streets under the network. The walkway network itself is fictional.")
+        # X6 + ISSUE-14 (user decision 2026-10-21): plan view only on the public demo; street tiles only behind the
+        # local dev flag, with a note that the walkway network on top is a fictional diagram.
+        street = False
+        if os.environ.get("ACCESSTWIN_DEV_STREETMAP", "0") == "1":
+            street = st.toggle(t("street_map"), key="ws_street", value=False,
+                               help="Shows OpenStreetMap streets under the network. The walkway network itself is fictional.")
         if street:
             st.caption("Street map: real OpenStreetMap streets as background only — the walkway network drawn on top is "
                        "a fictional demo layout, not a survey of these streets. © OpenStreetMap contributors.")
         routes, legend = [], []
+        extent = st.segmented_control("Map extent", ["Whole network", "Current route"], key="ws_extent",
+                                      default="Whole network", label_visibility="collapsed") or "Whole network"
+        fit_nodes: list[str] = []
         if loc.origin and loc.dest:
             base_r = cached.journey(okey, (), loc.origin, loc.dest, persona.key)
             if scenario:
@@ -393,13 +402,19 @@ def main() -> None:
                     legend.append([f"3px dashed {DETOUR_COLOUR}", f"Available route {_fmt(base_r.length_m)}"])
         legend += [["2px solid #A63429", "! barrier · ✖ obstruction / closure"], ["2px dashed #687064", "Unverified"],
                    ["2px dotted #A63429", "Impassable for this profile"]]
-        show_map(height=640, overlay_key=okey, persona_key=persona.key, routes_key=json.dumps(routes),
+        if loc.origin and loc.dest and extent == "Current route":
+            fit_nodes = sorted({n for r in routes for n in r[0]} | {loc.origin, loc.dest})
+        e_sel = ws.find_edge(G, loc.edge_id) or {}
+        key_nodes = [n for n in (loc.origin, loc.dest, e_sel.get("from"), e_sel.get("to")) if n][:2] or \
+            [n for n in (e_sel.get("from"), e_sel.get("to")) if n]
+        show_map(height=640, key_nodes_key=json.dumps(key_nodes), fit_key=json.dumps(fit_nodes), overlay_key=okey, persona_key=persona.key, routes_key=json.dumps(routes),
                  upgrades_key=json.dumps(list(scenario)),
                  highlight_key=json.dumps([loc.edge_id] if scenario else []),
                  selected="" if scenario else loc.edge_id,
                  selected_label=f"{loc.label} · {loc.edge_id}" if not scenario else "",
-                 proposed_label=f"Ramp proposed at {loc.edge_id} · simulated" if scenario else "",
-                 street=street, legend_key=json.dumps(legend), show_ids=st.session_state.get("show_ids", False))
+                 proposed_label=f"Ramp at {loc.edge_id} · simulated" if scenario else "",
+                 street=street, show_ids=st.session_state.get("show_ids", False))
+        st.markdown(legend_html([tuple(x) for x in legend]), unsafe_allow_html=True)
         if scenario:
             st.caption(f"Proposed ramp at {loc.edge_id} (amber, simulated). Same map extent as the baseline.")
         if loc.origin and loc.dest:

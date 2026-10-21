@@ -70,6 +70,9 @@ h1 {{font-size:24px}} h2 {{font-size:20px}} h3 {{font-size:17px}}
 [data-testid="stElementContainer"]:has(.at-mobile-only:only-child):not(:has(.at-eyebrow)) {{display:none}}
 p, li, label, [data-testid="stMarkdownContainer"] {{font-size:15px}}
 [data-testid="stCaptionContainer"], .at-muted {{font-size:13px;color:var(--text-secondary)}}
+input::placeholder, textarea::placeholder, [data-baseweb="select"] [aria-hidden="true"] {{color:#5F655A !important;opacity:1}}
+/* UI-01: Streamlit renders captions at opacity 0.6 (≈2.6:1 on paper white); use the token colour at full opacity */
+[data-testid="stCaptionContainer"] {{opacity:1 !important}}
 [data-testid="stMetricValue"] {{font-variant-numeric:tabular-nums;font-weight:400}}
 /* Controls: 4 px radius, hairline borders, ≥ 44 px targets, visible focus. */
 button, [data-testid="stBaseButton-primary"], [data-testid="stBaseButton-secondary"] {{border-radius:4px !important;min-height:44px}}
@@ -117,6 +120,12 @@ a:focus-visible, button:focus-visible, [role="tab"]:focus-visible, input:focus-v
 .at-hero-chip.approved {{color:var(--state-verified)}} .at-hero-chip.rejected {{color:var(--text-secondary)}}
 .at-hero-cap {{font-size:13px;color:var(--text-primary);margin-top:4px}}
 .at-hero-credit {{font-size:12px;color:var(--text-secondary)}}
+.at-legend {{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center;font-size:13px;color:var(--text-primary);border-bottom:1px solid var(--border-default);padding:6px 0 8px;margin-top:-6px}}
+.at-leg {{display:inline-flex;align-items:center;gap:6px}} .at-leg i {{display:inline-block;width:22px}}
+.at-legend .at-muted {{flex-basis:100%}}
+.at-thumb {{margin:0;aspect-ratio:4/3;overflow:hidden;border-radius:4px;background:#E9ECE1}}
+.at-thumb img {{width:100%;height:100%;object-fit:cover;display:block}}
+.at-example {{display:inline-block;font-size:12.5px;font-weight:600;color:#5E4A1A;background:#F6F0DF;border:1px solid #D9CDAF;padding:2px 6px;margin:4px 0}}
 .at-route {{margin:4px 0 6px;padding-left:0;list-style:none;font-size:13.5px}}
 .at-route li {{display:flex;gap:8px;justify-content:space-between;border-bottom:1px solid #EEEFE7;padding:3px 0}}
 .at-route li .at-num {{margin-left:auto;white-space:nowrap;color:var(--text-secondary)}}
@@ -195,7 +204,8 @@ table.at-cmp td.sc {{color:var(--accent-strong);background:#F6F0E6}}
   [data-testid="stPageLink"] a {{justify-content:center;padding:0 2px}} [data-testid="stPageLink"] p {{font-size:13px}}
   .at-tab-active {{font-size:13px}}
   [data-testid="stHorizontalBlock"]:has(.at-tabs) {{gap:4px !important}}
-  [data-testid="stColumn"]:has(.at-ws-map) iframe {{height:540px !important}}
+  [data-testid="stColumn"]:has(.at-ws-map) iframe {{height:430px !important}}
+  [data-testid="stColumn"]:has(.at-ws-map) [data-testid="stElementContainer"]:has(> iframe) {{height:430px !important;max-height:430px !important;overflow:hidden}}
   [data-testid="stPopover"] button {{padding:0 6px}} [data-testid="stPopover"] button p {{white-space:nowrap;font-size:14px}}
 }}
 </style>

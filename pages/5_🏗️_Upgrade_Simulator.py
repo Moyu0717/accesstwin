@@ -13,7 +13,7 @@ from accesstwin.ui.i18n import t
 from accesstwin.ui.map_view import legend, show_map
 
 
-@st.fragment
+@ui.fragment
 def scenario_panel(persona, mode: str) -> None:
     """Upgrade picker, metrics and the before/after map rerun on their own."""
     G = ui.graph()

@@ -16,9 +16,10 @@ from accesstwin.core.graph import iter_edges, node_name
 from accesstwin.core.obstacles import OBSTACLE_TYPES, PERSONA_KEYS, SEVERITIES, analyze_photo
 from accesstwin.ui import components as ui
 from accesstwin.ui import guide
+from accesstwin.ui import workspace as ws
 from accesstwin.ui.i18n import t
 
-SOURCES = ["No photo", "Use a sample photo", "Upload a photo"]
+SOURCES = ["No photo", "Upload a photo", "Use an example photo"]
 
 
 def _draft_id() -> str:
@@ -82,35 +83,43 @@ def main() -> None:
     labels = {e["id"]: f"{e['id']} · {node_name(G, e['from'])} → {node_name(G, e['to'])}" for e in edges}
     default_edge = st.session_state.get("ro_edge", "E7")
     st.markdown("<div class='at-eyebrow' style='margin-top:6px'>1 · Where</div>", unsafe_allow_html=True)
-    f1, f2 = st.columns([3, 1])
-    edge_id = f1.selectbox("Location (nearest segment)", edge_ids,
+    edge_id = st.selectbox("Location (nearest segment)", edge_ids,
                            index=edge_ids.index(default_edge) if default_edge in edge_ids else 0,
                            format_func=lambda i: labels[i], key="ro_edge")
-    role = f2.radio("I am a", ["resident", "guard"], key="ro_role", horizontal=True)
+    # UI-03: residents report as residents; the demo role switch lives in a clearly labelled demo setting.
+    with st.expander("Demo settings (for trying the demo only)", expanded=False):
+        role = st.radio("Report as (demo role)", ["resident", "guard"], key="ro_role", horizontal=True,
+                        help="Demo only: a real deployment takes the role from the signed-in account.")
 
     # ---- 2. description + optional photo
     st.markdown("<div class='at-eyebrow' style='margin-top:10px'>2 · What is the problem</div>", unsafe_allow_html=True)
     description = st.text_area("Description", key="ro_desc", max_chars=1000,
                                placeholder="e.g. The kerb at the clinic entrance is too high for my wheelchair.")
     st.caption(t("photo_notice"))
+    if st.session_state.get("ro_src") not in SOURCES:
+        st.session_state["ro_src"] = "No photo"
     src = st.radio("Photo (optional)", SOURCES, horizontal=True, key="ro_src")
     image_bytes, filename, mime = None, None, "image/jpeg"
-    if src == "Use a sample photo":
-        samples = sorted(p.name for p in config.PHOTOS_DIR.glob("*") if p.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"})
+    if src == "Use an example photo":
         credits = ui.photo_credits()
-        gallery = [s for s in samples if s in credits] or samples
-        cols = st.columns(4)
-        for i, name in enumerate(gallery):
-            with cols[i % 4]:
-                st.image(str(config.PHOTOS_DIR / name), width="stretch")
-                st.caption(ui.photo_caption(name))
-                if st.button("Use this photo", key=f"ro_pick_{name}", help=f"Select {name}"):
-                    st.session_state["ro_sample"] = name
+        gallery = sorted(n for n in credits if (config.PHOTOS_DIR / n).exists())
         if st.session_state.get("ro_sample") not in gallery:
-            st.session_state["ro_sample"] = "kerb_high_granite_step.jpg" if "kerb_high_granite_step.jpg" in gallery else gallery[0]
-        filename = st.selectbox("Selected sample photo", gallery, key="ro_sample")
-        image_bytes = (config.PHOTOS_DIR / filename).read_bytes()
-        mime = "image/png" if filename.lower().endswith(".png") else "image/jpeg"
+            st.session_state["ro_sample"] = None  # UI-03: nothing pre-selected
+        with st.expander("Example photos — not taken at these locations", expanded=False):
+            cols = st.columns(4)
+            for i, name in enumerate(gallery):
+                with cols[i % 4]:
+                    st.markdown(f"<figure class='at-thumb'><img alt='{ui.esc(ui.photo_caption(name))}' "
+                                f"src='data:image/jpeg;base64,{ws.photo_b64(str(config.PHOTOS_DIR / name), 0, 360)}'/>"
+                                f"</figure>", unsafe_allow_html=True)
+                    st.caption(f"{ui.example_label()} · {ui.photo_credit_line(name)}")
+                    if st.button("Use this photo", key=f"ro_pick_{name}", help=f"Select {name}"):
+                        st.session_state["ro_sample"] = name
+        filename = st.selectbox("Selected example photo", gallery, key="ro_sample", index=None,
+                                placeholder="Choose an example photo", format_func=lambda n: credits[n]["label"])
+        if filename:
+            image_bytes = (config.PHOTOS_DIR / filename).read_bytes()
+            mime = "image/jpeg"
     elif src == "Upload a photo":
         up = st.file_uploader("Photo of the obstacle", type=["png", "jpg", "jpeg", "webp"], key="ro_upload")
         if up is not None:
@@ -124,7 +133,8 @@ def main() -> None:
     if image_bytes:
         cache_key = f"ro_ai::{hashlib.sha256(image_bytes).hexdigest()}::{filename}"
         col_img, col_ai = st.columns([2, 3])
-        col_img.image(image_bytes, caption=filename if is_upload else ui.photo_caption(filename), width="stretch")
+        col_img.image(image_bytes, caption=filename if is_upload else
+                      f"{ui.example_label()} · {ui.photo_credit_line(filename)}", width="stretch")
         with col_ai:
             if cache_key not in st.session_state:
                 st.caption("The photo is not analysed until you press the button. "

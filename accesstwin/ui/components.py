@@ -51,6 +51,20 @@ def _township_cached() -> dict:
     return load_township()
 
 
+def fragment(func):
+    """st.fragment that re-binds this visitor's sandbox DB first. A fragment-only rerun skips setup_page, so without
+    this the store would fall back to the shared DB (X1 isolation bug found in Round 2C)."""
+    import functools
+
+    @st.fragment
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        store.use_session(session_id())
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
 def session_id() -> str | None:
     """Streamlit session id for the per-visitor sandbox, or None when the sandbox is disabled (tests/CLI)."""
     import os
@@ -136,21 +150,15 @@ def sidebar(bar: bool = True) -> Persona:
         )
         st.session_state["persona"] = choice
         st.caption(t("persona_assumption"))
-        with st.expander("Persona rules"):
+        with st.expander("Profile rules (demo assumptions)"):
             p = ps[choice]
-            st.write(
-                {
-                    "steps allowed": p.allow_step,
-                    "max curb (cm)": p.max_curb_cm,
-                    "max slope (%)": p.max_slope_pct,
-                    "min width (cm)": p.min_width_cm,
-                    "unsuitable surfaces": list(p.bad_surfaces),
-                    "max trip (m)": p.max_trip_m,
-                    "prefers covered": p.prefers_covered,
-                    "needs tactile": p.needs_tactile,
-                    "equity weight": p.equity_weight,
-                }
-            )
+            rules = [("Steps allowed", "yes" if p.allow_step else "no"), ("Max kerb", f"{p.max_curb_cm:g} cm"),
+                     ("Max slope", f"{p.max_slope_pct:g} %"), ("Min width", f"{p.min_width_cm:g} cm"),
+                     ("Unsuitable surfaces", ", ".join(p.bad_surfaces) or "none"), ("Max trip", f"{p.max_trip_m:g} m"),
+                     ("Prefers covered", "yes" if p.prefers_covered else "no"),
+                     ("Needs tactile paving", "yes" if p.needs_tactile else "no"), ("Equity weight", f"{p.equity_weight:g}")]
+            st.markdown("".join(f"<div class='at-kv'><span>{esc(k)}</span><span>{esc(v)}</span></div>" for k, v in rules),
+                        unsafe_allow_html=True)
         st.toggle(t("show_ids"), key="show_ids", value=st.session_state.get("show_ids", False))
         st.caption(t("fictional"))
         st.divider()
@@ -214,6 +222,16 @@ def photo_caption(filename: str) -> str:
         return f"{credit['label']} — source: {credit['source']}"
     label = filename.rsplit(".", 1)[0].replace("_", " ")
     return f"Illustration (placeholder): {label}" if is_placeholder_photo(filename) else label
+
+
+def example_label() -> str:
+    """UI-05: next to every bundled example photo — it is not a photo of the reported place."""
+    return t("example_photo")
+
+
+def is_example_photo(filename: str) -> bool:
+    """Bundled, credited Wikimedia photos are examples; only uploads are real evidence of a place."""
+    return filename in photo_credits()
 
 
 def photo_credit_line(filename: str) -> str:
