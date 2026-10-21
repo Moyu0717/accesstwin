@@ -341,7 +341,9 @@ def test_network_inspector_shows_evidence_before_action_and_condition_for_e7():
     photos = [r for r in ws.edge_evidence("E7") if r["photo"]]
     newest = photos[0]
     hero_html = seq[hero][1]
-    assert f"Report #{newest['id']} · Pending review" in hero_html
+    # UI-05: seed reports are labelled as examples on the Network page ("Example report #N · Pending review").
+    seed_label = "Example report" if (newest.get("ai") or {}).get("source") == "seed" else "Report"
+    assert f"{seed_label} #{newest['id']} · Pending review" in hero_html
     assert ui.photo_credit_line(newest["photo"].name) in htmllib.unescape(hero_html)
     assert ui.photo_credit_line(newest["photo"].name).startswith("Photo: ")
     assert ui.photo_credit_line(newest["photo"].name).endswith("Wikimedia Commons")
@@ -420,7 +422,7 @@ def test_route_planner_report_button_names_the_blocking_segment_and_queues_it():
 
 def test_report_page_honours_the_queued_edge_preset():
     rep = AppTest.from_file(PAGES["2"], default_timeout=90)
-    rep.session_state["guide_pending"] = {"ro_edge": "E7", "ro_src": "Use a sample photo"}
+    rep.session_state["guide_pending"] = {"ro_edge": "E7", "ro_src": "Use an example photo"}
     rep.run()
     assert not rep.exception, [e.message for e in rep.exception]
     assert rep.selectbox(key="ro_edge").value == "E7"

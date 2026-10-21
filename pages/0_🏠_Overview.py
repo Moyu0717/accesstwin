@@ -416,7 +416,7 @@ def main() -> None:
                  street=street, show_ids=st.session_state.get("show_ids", False))
         st.markdown(legend_html([tuple(x) for x in legend]), unsafe_allow_html=True)
         if scenario:
-            st.caption(f"Proposed ramp at {loc.edge_id} (amber, simulated). Same map extent as the baseline.")
+            st.caption(f"Proposed ramp at {loc.edge_id} (amber, simulated). " + ("Same extent as the baseline view." if extent == "Whole network" else "Zoomed to the current route.") + "")
         if loc.origin and loc.dest:
             route_details(G, cached.journey(okey, scenario, loc.origin, loc.dest, persona.key), persona, scenario)
         st.caption("Fictional layout · synthetic data · not to scale. The list on the left is the equivalent of the "

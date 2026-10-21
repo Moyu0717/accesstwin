@@ -288,7 +288,7 @@ def test_live_groq_vision_on_sample_photo(monkeypatch):
     if not key:
         pytest.skip("GROQ_API_KEY not set in .env; live test skipped")
 
-    photo = config.PHOTOS_DIR / "curb_high_step.png"
+    photo = config.PHOTOS_DIR / "kerb_high_granite_step.jpg"
     if not photo.exists():
         pytest.skip("sample photo missing")
 
@@ -297,7 +297,7 @@ def test_live_groq_vision_on_sample_photo(monkeypatch):
     monkeypatch.setenv("GROQ_API_KEY", key)  # value is never printed
     assert config.vision_provider() == "groq"
 
-    result = analyze_photo(photo.read_bytes(), photo.name, "image/png")
+    result = analyze_photo(photo.read_bytes(), photo.name, "image/jpeg")
 
     assert result["source"] == "groq", result.get("notice")
     assert SCHEMA_KEYS <= set(result)
@@ -322,7 +322,7 @@ def test_report_page_renders_and_picks_sample_without_calling_groq(groq_env, mon
     page = config.ROOT / "pages" / next(p.name for p in (config.ROOT / "pages").glob("2_*.py"))
     at = AppTest.from_file(str(page), default_timeout=90)
     at.run()
-    at.radio(key="ro_src").set_value("Use a sample photo").run()
+    at.radio(key="ro_src").set_value("Use an example photo").run()
     at.selectbox(key="ro_sample").set_value("kerb_high_granite_step.jpg").run()
     assert not at.exception
     assert calls == [], "the vision API was called without a click"

@@ -118,8 +118,8 @@ def _sample_names() -> list[str]:
 def test_report_page_has_a_pick_button_per_sample_photo():
     store.reset_demo()
     at = _page("2")
-    # 2B: the gallery buttons only SELECT a sample; the gallery is shown once "Use a sample photo" is chosen.
-    at.radio(key="ro_src").set_value("Use a sample photo").run()
+    # 2B: the gallery buttons only SELECT a sample; the gallery is shown once "Use an example photo" is chosen.
+    at.radio(key="ro_src").set_value("Use an example photo").run()
     keys = {b.key: b for b in at.button}
     names = _sample_names()
     assert names, "bundled sample photos are missing"
@@ -128,8 +128,8 @@ def test_report_page_has_a_pick_button_per_sample_photo():
     for name in gallery:
         assert f"ro_pick_{name}" in keys, name
         assert keys[f"ro_pick_{name}"].label == "Use this photo"
-    # Selecting is not analysing: the analyse button is there, but no suggestion has been produced yet.
-    assert "ro_analyse" in keys
+    # Selecting is not analysing, and analysis needs a selected photo: no analyse button until one is picked.
+    assert "ro_analyse" not in keys
     assert not any("Suggested type" in m.value for m in at.markdown)
     # every gallery photo that is third-party carries its author and licence in the caption (credits.json v2)
     for name in gallery:
@@ -142,7 +142,7 @@ def test_clicking_blocked_ramp_sample_shows_suggestion():
     at = _page("2")
     key = "pavement_blocked_parked_cars.jpg"
     assert key in ui.photo_credits()
-    at.radio(key="ro_src").set_value("Use a sample photo").run()
+    at.radio(key="ro_src").set_value("Use an example photo").run()
     at.button(key=f"ro_pick_{key}").click().run()
     assert not at.exception
     # 2B: picking a photo does not analyse it; the suggestion appears after "Analyse photo" is clicked.
@@ -153,10 +153,12 @@ def test_clicking_blocked_ramp_sample_shows_suggestion():
 
 
 def test_placeholder_photo_captions_are_labelled_as_illustrations():
-    placeholders = [n for n in _sample_names() if n in PLACEHOLDER_PHOTOS]
-    assert set(placeholders) == set(PLACEHOLDER_PHOTOS)
-    for name in placeholders:
-        assert ui.photo_caption(name).startswith("Illustration (placeholder)"), name
+    # UI-03: the generated placeholder PNGs were removed, so the placeholder set is empty and no bundled photo is
+    # labelled as an illustration. Every bundled photo is a credited Wikimedia example instead.
+    assert PLACEHOLDER_PHOTOS == set()
+    assert not any(n in PLACEHOLDER_PHOTOS for n in _sample_names())
+    for name in _sample_names():
+        assert not ui.photo_caption(name).startswith("Illustration (placeholder)"), name
     # A non-placeholder photo must not be labelled as one.
     assert not ui.photo_caption("ok_ramp_x.jpg").startswith("Illustration (placeholder)")
 

@@ -74,7 +74,7 @@ def counting_analyse(monkeypatch):
 def test_photo_is_not_analysed_until_analyse_is_clicked(counting_analyse):
     store.reset_demo()
     at = _page("2")
-    at.radio(key="ro_src").set_value("Use a sample photo").run()
+    at.radio(key="ro_src").set_value("Use an example photo").run()
     at.button(key=f"ro_pick_{KERB}").click().run()
     at.selectbox(key="ro_sample").set_value(KERB).run()
     assert counting_analyse == []  # selecting or picking a sample is not analysis
@@ -134,7 +134,7 @@ def test_ai_failure_keeps_description_and_allows_manual_category(monkeypatch):
 
     monkeypatch.setattr(obstacles, "analyze_photo", failing)
     at = _page("2")
-    at.radio(key="ro_src").set_value("Use a sample photo").run()
+    at.radio(key="ro_src").set_value("Use an example photo").run()
     at.selectbox(key="ro_sample").set_value(KERB).run()
     at.text_area(key="ro_desc").set_value("Step at the clinic entrance").run()
     at.button(key="ro_analyse").click().run()
@@ -155,7 +155,7 @@ def test_ai_failure_keeps_description_and_allows_manual_category(monkeypatch):
 def test_submit_after_analyse_without_touching_category_keeps_suggestion():
     store.reset_demo()
     at = _page("2")
-    at.radio(key="ro_src").set_value("Use a sample photo").run()
+    at.radio(key="ro_src").set_value("Use an example photo").run()
     at.selectbox(key="ro_sample").set_value(KERB).run()
     at.button(key="ro_analyse").click().run()
     assert any("Suggested type: high curb" in m.value for m in at.markdown)
@@ -169,7 +169,7 @@ def test_submit_after_analyse_without_touching_category_keeps_suggestion():
 def test_changing_category_after_analyse_is_saved_and_original_kept():
     store.reset_demo()
     at = _page("2")
-    at.radio(key="ro_src").set_value("Use a sample photo").run()
+    at.radio(key="ro_src").set_value("Use an example photo").run()
     at.selectbox(key="ro_sample").set_value(KERB).run()
     at.button(key="ro_analyse").click().run()
     type_box = next(s for s in at.selectbox if s.key and s.key.startswith("ro_manual_type_"))
@@ -334,9 +334,13 @@ def test_ai_text_with_script_is_not_rendered_as_html(monkeypatch):
 
     monkeypatch.setattr(obstacles, "analyze_photo", hostile)
     at = _page("2")
-    at.radio(key="ro_src").set_value("Use a sample photo").run()
+    at.radio(key="ro_src").set_value("Use an example photo").run()
     at.selectbox(key="ro_sample").set_value(KERB).run()
     at.button(key="ro_analyse").click().run()
     assert not at.exception
-    raw = " ".join(_raw_html(at)).lower()
-    assert "<script" not in raw and "<img" not in raw
+    # The example gallery legitimately renders trusted <img> thumbnails as raw HTML, so only the AI text is checked:
+    # the hostile payload must never appear in raw HTML, and it must show up as escaped text in the suggestion.
+    raw = " ".join(_raw_html(at))
+    assert PAYLOAD not in raw and "onerror=\"alert(2)\"" not in raw
+    shown_as_text = [m.value for m in at.markdown if not m.proto.allow_html]
+    assert any("<script" in v and "Visible evidence" in v for v in shown_as_text)

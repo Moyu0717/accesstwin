@@ -44,7 +44,7 @@ def test_report_approve_confirms_obstacle_and_reroutes():
     store.reset_demo()
     # 1. Report Obstacle page: pick the curb sample photo, mock AI says high_curb, submit on E7.
     at = _run("2")
-    at.radio(key="ro_src").set_value("Use a sample photo").run()
+    at.radio(key="ro_src").set_value("Use an example photo").run()
     at.selectbox(key="ro_sample").set_value("kerb_high_granite_step.jpg").run()
     at.button(key="ro_analyse").click().run()  # 2B: analysis only on the explicit click
     assert any("Suggested type: high curb" in m.value for m in at.markdown)

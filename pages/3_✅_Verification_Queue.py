@@ -41,7 +41,7 @@ def review_detail(r: dict, G, impact_text) -> None:
                         f"{ui.esc(orig.get('source', ''))}</div>", unsafe_allow_html=True)
         head = ("Reporter choice" + (" (edited)" if ai.get("edited") else "")) if orig else "Category"
         st.markdown(f"<div class='at-eyebrow' style='margin-top:8px'>{ui.esc(head)}</div>"
-                    f"<div>{ui.esc(cur)} · {ui.esc(src)}</div>", unsafe_allow_html=True)
+                    f"<div>{ui.esc(cur)} · {ui.esc({'seed': 'example data', 'mock': 'demo classifier', 'manual': 'chosen by the reporter'}.get(src, src))}</div>", unsafe_allow_html=True)
         if ai.get("needs_onsite_measurement"):
             st.caption("Measure on site: " + ", ".join(ai["needs_onsite_measurement"]))
         if r.get("triage") == "needs_information" and r.get("reason"):

@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parent.parent
 BUILD_SCRIPT = ROOT / "scripts" / "build_stlite_site.py"
 CHECK_SCRIPT = ROOT / "scripts" / "check_tracked.py"
 PAGES_YML = ROOT / ".github" / "workflows" / "pages.yml"
-SAMPLE_PHOTO = ROOT / "data" / "photos" / "curb_high_step.png"
+SAMPLE_PHOTO = ROOT / "data" / "photos" / "kerb_high_granite_step.jpg"
 GSK_KEY = re.compile(r"gsk_[A-Za-z0-9]{20,}")
 
 

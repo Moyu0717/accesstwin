@@ -62,7 +62,7 @@ def test_full_demo_script_mock_mode():
 
     # 1:00 Evidence — curb photo -> high_curb suggestion -> submit -> guard approves.
     rep = _page(PAGES["2"])
-    rep.radio(key="ro_src").set_value("Use a sample photo").run()
+    rep.radio(key="ro_src").set_value("Use an example photo").run()
     rep.selectbox(key="ro_sample").set_value("kerb_high_granite_step.jpg").run()
     rep.button(key="ro_analyse").click().run()  # 2B: analysis only on the explicit click
     assert "Suggested type: high curb" in _text(rep)
