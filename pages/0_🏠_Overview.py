@@ -363,10 +363,13 @@ def main() -> None:
             action_box(loc, scenario, "mobile")
         with st.container(key="ws_hero_mob"):
             evidence_hero(loc, "_m")
-        # X6: plan view only on the public demo; street tiles over the real Elmina streets only behind a dev flag.
-        street = False
-        if os.environ.get("ACCESSTWIN_DEV_STREETMAP", "0") == "1":
-            street = st.toggle(t("street_map"), key="ws_street", value=False)
+        # Street map is back as an opt-in toggle (user request, 2026-10-21); default stays the plan view (X6) and the
+        # street view says plainly that the walkway network on top is a fictional diagram.
+        street = st.toggle(t("street_map"), key="ws_street", value=False,
+                           help="Shows OpenStreetMap streets under the network. The walkway network itself is fictional.")
+        if street:
+            st.caption("Street map: real OpenStreetMap streets as background only — the walkway network drawn on top is "
+                       "a fictional demo layout, not a survey of these streets. © OpenStreetMap contributors.")
         routes, legend = [], []
         if loc.origin and loc.dest:
             base_r = cached.journey(okey, (), loc.origin, loc.dest, persona.key)
